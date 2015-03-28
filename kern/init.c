@@ -36,12 +36,15 @@ i386_init(void)
 
 	cprintf("6828 decimal is %o octal!\n", 6828);
 /***********************************************************************/
-	int x = 1, y = 3, z = 4;
-	char* cPtr = "x %d, y %x, z %d\n";
-	cprintf(cPtr, x, y, z);
-	cprintf("The pointer points to : %p\n",cPtr);
+//	int x = 1, y = 3, z = 4;
+//	char* cPtr = "x %d, y %x, z %d\n";
+//	cprintf("The pointer points to : %p\n",cPtr);
+//	cprintf(cPtr, x, y, z);
 
+//	unsigned int i = 0x00646c72;
+//	cprintf("H%x Wo%s\n", 57616, &i);
 
+//	cprintf("x=%d y=%x\n", 3);
 /***********************************************************************/
 
 	// Test the stack backtrace function (lab 1 only)
