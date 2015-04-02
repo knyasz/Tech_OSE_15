@@ -292,7 +292,17 @@ struct PageInfo *
 page_alloc(int alloc_flags)
 {
 	// Fill this function in
-	return 0;
+	if(! page_free_list){
+		return NULL;
+	}
+	struct PageInfo * page = page_free_list;
+	page_free_list=page_free_list->pp_link;
+	uint32_t* page_kva = page2kva(page);
+	if(alloc_flags & ALLOC_ZERO){
+		memset(page_kva,'\0',PGSIZE);
+	}
+	return page;
+//	return 0;
 }
 
 //
@@ -303,6 +313,8 @@ void
 page_free(struct PageInfo *pp)
 {
 	// Fill this function in
+	pp->pp_link = page_free_list;
+	page_free_list = pp;
 }
 
 //
