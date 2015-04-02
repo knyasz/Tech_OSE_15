@@ -296,7 +296,7 @@ page_alloc(int alloc_flags)
 		return NULL;
 	}
 	struct PageInfo * page = page_free_list;
-	page_free_list=page_free_list->pp_link;
+	page_free_list=page->pp_link;
 	uint32_t* page_kva = page2kva(page);
 	if(alloc_flags & ALLOC_ZERO){
 		memset(page_kva,'\0',PGSIZE);
@@ -354,7 +354,27 @@ pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
-	return NULL;
+	pte_t * pageTableEntryVA = NULL;
+	pte_t * pageTableBase = NULL;
+	uint32_t PDe = pgdir[PTX(va)];
+	bool pageTableExists = (bool)(PDe & PTE_P);
+	if (pageTableExists){
+		pageTableBase = (pte_t *)(pgdir[PGNUM(PDe)]<<PTXSHIFT);
+		pageTableEntryVA = KADDR(pageTableBase + PTX(va));
+	}else{
+		if (!create){
+			return NULL;
+		}
+		struct PageInfo* newPage = page_alloc(1);
+		if(!newPage){
+			return NULL;
+		}
+		++newPage->pp_ref;
+		pageTableBase = page2pa(newPage) ;
+		pgdir[PTX(va)] = (uint32_t)pageTableBase | PTE_P;
+		pageTableEntryVA = KADDR(pageTableBase);
+	}
+	return pageTableEntryVA;
 }
 
 //
