@@ -98,8 +98,19 @@ boot_alloc(uint32_t n)
 	// to a multiple of PGSIZE.
 	//
 	// LAB 2: Your code here.
+	result = nextfree;
+	if (n>0){
+		nextfree = (char*)(ROUNDUP(n,PGSIZE) + (uint32_t)nextfree);
+//		result = (char*)KERNBASE;
+		if ((uint32_t)result>=(uint32_t)nextfree){
+			panic("out of memory");
+		}
+	}else{//n==0
+//		result = nextfree;
+	}
+	return result;
 
-	return NULL;
+//	return NULL;
 }
 
 // Set up a two-level page table:
@@ -121,7 +132,7 @@ mem_init(void)
 	i386_detect_memory();
 
 	// Remove this line when you're ready to test this function.
-	panic("mem_init: This function is not finished\n");
+//	panic("mem_init: This function is not finished\n");
 
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
@@ -143,6 +154,8 @@ mem_init(void)
 	// each physical page, there is a corresponding struct PageInfo in this
 	// array.  'npages' is the number of physical pages in memory.
 	// Your code goes here:
+
+	pages = boot_alloc(npages*sizeof(struct PageInfo));
 
 
 	//////////////////////////////////////////////////////////////////////
@@ -252,6 +265,18 @@ page_init(void)
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
 	}
+	pages[1].pp_link = pages[0].pp_link;//  1) Mark physical page 0 as in use.
+			//  3) Then comes the IO hole [IOPHYSMEM, EXTPHYSMEM), which must
+			//     never be allocated.
+			//	EXTPHYSMEM	0x100000
+			//	IOPHYSMEM	0x0A0000
+	pages[EXTPHYSMEM/PGSIZE].pp_link = pages[IOPHYSMEM/PGSIZE].pp_link;
+			//  4) Then extended memory [EXTPHYSMEM, ...).
+	char *nextfree = boot_alloc(0);
+	size_t kernel_pages =
+			(ROUNDUP((uint32_t)(nextfree - KERNBASE),PGSIZE))/PGSIZE;
+	pages[kernel_pages].pp_link = pages[EXTPHYSMEM/PGSIZE].pp_link;
+
 }
 
 //
