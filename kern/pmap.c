@@ -354,26 +354,26 @@ pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
-	pte_t * pageTableEntryVA = NULL;
-	pte_t * pageTableBase = NULL;
-	uint32_t PDe = pgdir[PTX(va)];
+	physaddr_t pageTableBasePA = 0;
+	uint32_t PDe = pgdir[PDX(va)];
 	bool pageTableExists = (bool)(PDe & PTE_P);
 	if (pageTableExists){
-		pageTableBase = (pte_t *)(pgdir[PGNUM(PDe)]<<PTXSHIFT);
-		pageTableEntryVA = KADDR(pageTableBase + PTX(va));
+		pageTableBasePA = PTE_ADDR(PDe);
 	}else{
 		if (!create){
 			return NULL;
 		}
-		struct PageInfo* newPage = page_alloc(1);
+		struct PageInfo* newPage = page_alloc(ALLOC_ZERO);
 		if(!newPage){
 			return NULL;
 		}
-		++newPage->pp_ref;
-		pageTableBase = page2pa(newPage) ;
-		pgdir[PTX(va)] = (uint32_t)pageTableBase | PTE_P;
-		pageTableEntryVA = KADDR(pageTableBase);
+		++(newPage->pp_ref);
+		pageTableBasePA = page2pa(newPage) ;
+		pgdir[PDX(va)] = pageTableBasePA | PTE_P;
 	}
+	//always return PTe and not a Page Table base
+	pte_t * pageTableBaseVA = (pte_t *)KADDR(pageTableBasePA);
+	pte_t * pageTableEntryVA = pageTableBaseVA + PTX(va);
 	return pageTableEntryVA;
 }
 
@@ -391,6 +391,26 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
+	assert(size%PGSIZE == 0);
+	assert(PGOFF(va) == 0);
+	assert(PGOFF(pa) == 0);
+	physaddr_t paToMapRoot = pa;
+	uintptr_t pageToMapRoot = va;
+	for(;pageToMapRoot<va+size;pageToMapRoot+=PGSIZE){
+		physaddr_t PTe = ( PTE_ADDR(paToMapRoot)) | perm | PTE_P;
+		paToMapRoot += PGSIZE;
+		/*****************************************************************
+		 * The only allocations made are of missing Page Tables
+		 * Assumption : if you have pa - it's already have been allocated
+		 *****************************************************************/
+		pte_t * pPageTableEntry =
+				pgdir_walk(pgdir,(void*)pageToMapRoot,(int)true);
+		/******************************************************/
+		if (pPageTableEntry){
+			( *pPageTableEntry ) = PTe;
+		}
+	}
+
 }
 
 //
@@ -422,6 +442,18 @@ int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
 	// Fill this function in
+	struct PageInfo * pPageDescriptor = page_lookup(pgdir,va,NULL);
+	if(pPageDescriptor != pp){
+		page_remove(pgdir,va);
+		if (!pgdir_walk(pgdir,va,(int)true)){
+			return -E_NO_MEM;
+		}
+		++(pp->pp_ref);
+	}//Now need to set Flags only - page already exists
+	pde_t * pPageTableEntryVA = pgdir_walk(pgdir,va,(int)false);
+	assert(pPageTableEntryVA);
+	*pPageTableEntryVA = PTE_ADDR(page2pa(pp)) | perm | PTE_P;
+	pgdir[PDX(va)] = PTE_ADDR(pgdir[PDX(va)])| perm | PTE_P;
 	return 0;
 }
 
@@ -440,7 +472,19 @@ struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	// Fill this function in
-	return NULL;
+	struct PageInfo * PageDescriptor = NULL;
+	pde_t * pPageTableEntryVA = pgdir_walk(pgdir,va,(int)true);
+	if (!pPageTableEntryVA) {
+		return NULL;
+	}
+	if (pte_store){
+		*pte_store = pPageTableEntryVA;
+	}
+
+	if((*pPageTableEntryVA) & PTE_P){//Physical page is present (allocated)
+		PageDescriptor = pa2page(PTE_ADDR(*pPageTableEntryVA));
+	}
+	return PageDescriptor;
 }
 
 //
@@ -462,6 +506,15 @@ void
 page_remove(pde_t *pgdir, void *va)
 {
 	// Fill this function in
+	pde_t * pPTe = NULL;
+	struct PageInfo * pPageDescriptor = page_lookup(pgdir,va,&pPTe);
+	if (!pPageDescriptor){
+		return;
+	}
+	assert(*pPTe & PTE_P);
+	*pPTe = 0;
+	tlb_invalidate(pgdir,va);
+	page_decref(pPageDescriptor);
 }
 
 //
@@ -731,7 +784,8 @@ check_page(void)
 	assert(pp1->pp_ref == 1);
 	assert(pp0->pp_ref == 1);
 
-	// should be able to map pp2 at PGSIZE because pp0 is already allocated for page table
+	// should be able to map pp2 at PGSIZE
+	// because pp0 is already allocated for page table
 	assert(page_insert(kern_pgdir, pp2, (void*) PGSIZE, PTE_W) == 0);
 	assert(check_va2pa(kern_pgdir, PGSIZE) == page2pa(pp2));
 	assert(pp2->pp_ref == 1);
@@ -756,6 +810,8 @@ check_page(void)
 	assert(page_insert(kern_pgdir, pp2, (void*) PGSIZE, PTE_W|PTE_U) == 0);
 	assert(check_va2pa(kern_pgdir, PGSIZE) == page2pa(pp2));
 	assert(pp2->pp_ref == 1);
+
+	pte_t* addr = pgdir_walk(kern_pgdir, (void*) PGSIZE, 0);
 	assert(*pgdir_walk(kern_pgdir, (void*) PGSIZE, 0) & PTE_U);
 	assert(kern_pgdir[0] & PTE_U);
 
