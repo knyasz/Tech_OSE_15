@@ -295,57 +295,6 @@ mon_dump(int argc, char** argv, struct Trapframe *tf)
 		}
 		cprintf("\t 0x%08x is not mapped yet\n",(uintptr_t)vAddress);
 	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//	uint32_t *iter;
-//	pte_t * pte;
-//	pte = pgdir_walk(kern_pgdir,from,0);
-//	for (iter = (uint32_t*)from; iter < (uint32_t*)MIN((ROUNDUP((char*)from,PGSIZE)),to); ++iter) {
-//		if (pte && *pte) {
-//			assert(*pte & PTE_P);
-//			cprintf("  %08x",*iter);
-//		} else {
-//			cprintf("  UNMAPPED");
-//		}
-//	}
-//	from = ROUNDUP((char*)from,PGSIZE);
-//	for (; from <to;from+=PGSIZE) {
-//		pte = pgdir_walk(kern_pgdir,from,0);
-//		for (iter = (uint32_t*)from; iter < (uint32_t*)MIN((((char*)from)+PGSIZE),to); ++iter) {
-//			if (pte && *pte) {
-//				assert(*pte&PTE_P);
-//				cprintf("  %08x",*iter);
-//			} else {
-//				cprintf("  UNMAPPED");
-//			}
-//		}
-//	}
 	cprintf("\n");
 	return 0;
 }
