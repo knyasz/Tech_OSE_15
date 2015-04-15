@@ -8,6 +8,7 @@
 
 #include <kern/pmap.h>
 #include <kern/kclock.h>
+#include <kern/monitor.h>
 
 // These variables are set by i386_detect_memory()
 size_t npages;			// Amount of physical memory (in pages)
@@ -241,7 +242,13 @@ mem_init(void)
 
 	// Some more checks, only possible after kern_pgdir is installed.
 	check_page_installed_pgdir();
+	char * addresses[3];
+	addresses[1]="0xef000000";
+	addresses[2]="0xffffffff";
+//	mon_showmappings(3,addresses,NULL);
 }
+
+
 
 // --------------------------------------------------------------
 // Tracking of physical pages.
