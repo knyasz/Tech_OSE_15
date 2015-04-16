@@ -292,13 +292,20 @@ page_init(void)
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
 	}
-	pages[1].pp_link = pages[0].pp_link;//  1) Mark physical page 0 as in use.
-			//  3) Then comes the IO hole [IOPHYSMEM, EXTPHYSMEM), which must
-			//     never be allocated.
-			//	EXTPHYSMEM	0x100000
-			//	IOPHYSMEM	0x0A0000
+	//  1) Mark physical page 0 as in use.
+	pages[1].pp_link = pages[0].pp_link;
+	//  2) The rest of base memory, [PGSIZE, npages_basemem * PGSIZE)
+	//     is free.
+
+
+	//  3) Then comes the IO hole [IOPHYSMEM, EXTPHYSMEM), which must
+	//     never be allocated.
+	//	EXTPHYSMEM	0x100000
+	//	IOPHYSMEM	0x0A0000
 	pages[EXTPHYSMEM/PGSIZE].pp_link = pages[IOPHYSMEM/PGSIZE].pp_link;
-			//  4) Then extended memory [EXTPHYSMEM, ...).
+
+	//  4) Then extended memory [EXTPHYSMEM, ...).
+	// Until latest used which was allocated by boot_alloc()
 	char *nextfree = boot_alloc(0);
 	size_t kernel_pages =
 			(ROUNDUP((uint32_t)(nextfree - KERNBASE),PGSIZE))/PGSIZE;
