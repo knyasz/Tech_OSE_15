@@ -27,7 +27,7 @@ i386_init(void)
 	cons_init();
 
 
-	cprintf("6828 decimal is %o octal!\n", 6828);
+	cprintf("6828 decimal is %o octal!\n", 6828);//commented  in lab3
 /***********************************************************************/
 //	int x = 1, y = 3, z = 4;
 //	char* cPtr = "x %d, y %x, z %d\n";

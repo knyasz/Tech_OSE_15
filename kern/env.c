@@ -116,12 +116,20 @@ env_init(void)
 {
 	// Set up envs array
 	// LAB 3: Your code here.
+	memset(envs,0,NENV*sizeof(struct Env));
+	env_free_list = &envs[0];
 	uint32_t i=0;
-	env_free_list = &envs[i];
-	for(i=1;i<NENV;++i){
+	for(;i<NENV;++i){
+		envs[i].env_id = 0;
+		envs[i].env_status = ENV_FREE;
+		envs[i].env_type = ENV_TYPE_USER;
+		if (i==0) {
+			continue;
+		}
 		envs[i-1].env_link = &envs[i];
-		envs[i-1].env_status = ENV_FREE;
-		envs[i-1].env_type = ENV_TYPE_USER;
+		if (i == NENV - 1){
+			envs[i].env_link = NULL;
+		}
 	}
 
 	// Per-CPU part of the initialization
@@ -377,10 +385,11 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 			continue;
 		}
 		if(ph->p_filesz > ph->p_memsz){
-			panic("The ELF header should have ph->p_filesz <= ph->p_memsz.");
+			panic("The file size is greater than memory.");
 		}
 		region_alloc(e,(void *)ph->p_va,ph->p_memsz);
 		memset((void *)ph->p_va,0,ph->p_memsz);
+		// Like memcpy but handles source and target overlapping
 		memmove((void *)ph->p_va,binary + ph->p_offset,ph->p_filesz);
 	}
 	//Entry point - first instruction to run:
@@ -389,14 +398,15 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 	//so save the entry point to "saved registers"
 	e->env_tf.tf_eip = elf_header->e_entry;
 
-	//Return back to Kernel space
-	lcr3(PADDR(kern_pgdir));
 
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
 
 	// LAB 3: Your code here.
 	region_alloc(e, (void *) (USTACKTOP - PGSIZE), PGSIZE);
+
+	//Return back to Kernel space
+	lcr3(PADDR(kern_pgdir));
 }
 
 //
@@ -410,6 +420,18 @@ void
 env_create(uint8_t *binary, size_t size, enum EnvType type)
 {
 	// LAB 3: Your code here.
+	struct Env * p_new_env;
+	// This function is ONLY called during kernel initialization,
+	// before running the first user-mode environment.
+	// The new env's parent ID is set to 0.
+	envid_t new_env_parent_id = 0;
+	int result = env_alloc(&p_new_env,new_env_parent_id);
+	if( result<0 ){
+		panic("Can't allocate new Environment  : %e\n", result);
+	}
+	load_icode(p_new_env,binary,size);
+	p_new_env->env_type = type;
+	
 }
 
 //
@@ -526,6 +548,23 @@ env_run(struct Env *e)
 
 	// LAB 3: Your code here.
 
+	//Step 1
+	// Not the first time - some environment is running
+	if (curenv&& curenv->env_status == ENV_RUNNING) {
+		curenv->env_status = ENV_RUNNABLE;
+	}
+	curenv = e;
+	curenv->env_status = ENV_RUNNING;
+	++curenv->env_runs;
+	lcr3(PADDR(curenv->env_pgdir));
+
+	//Step 2
+	// Use env_pop_tf() to restore the environment's registers
+	// drop into user mode in the environment:
+	//	void env_pop_tf(struct Trapframe *tf)
+	// Restores the register values in the Trapframe with the 'iret' instruction.
+	// This exits the kernel and starts executing some environment's code.
+	env_pop_tf(&curenv->env_tf);//doesn't return
 	panic("env_run not yet implemented");
 }
 
