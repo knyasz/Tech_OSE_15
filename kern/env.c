@@ -192,7 +192,7 @@ env_setup_vm(struct Env *e)
 	 * End		- last entry of kern_pgdir (has NPDENTRIES entries)
 	 */
 	e->env_pgdir = page2kva(p);
-	memset(e->env_pgdir,"/0",PGSIZE);
+	memset(e->env_pgdir,0,PGSIZE);
 	for(i=PDX(UVPT);i<NPDENTRIES;++i){
 		e->env_pgdir[i]=kern_pgdir[i];
 	}
@@ -288,17 +288,17 @@ region_alloc(struct Env *e, void *va, size_t len)
 	if (!va || !e ){
 		return;
 	}
-	uintptr_t vaStartOFRegion = ROUNDDOWN(va,PGSIZE);
-	uintptr_t vaEndOfRegion = ROUNDUP(va+len,PGSIZE);
-	uintptr_t vaPagesIterator = vaStartOFRegion;
-	for(;vaPagesIterator<vaEndOfRegion;vaPagesIterator += PGSIZE){
-		struct PageInfo* pPhysicalPageDescriptor;
-		if(!(pPhysicalPageDescriptor=page_alloc(ALLOC_ZERO))){
+	uintptr_t va_start_of_region = ROUNDDOWN(va,PGSIZE);
+	uintptr_t va_end_of_region = ROUNDUP(va+len,PGSIZE);
+	uintptr_t va_pages_iterator = va_start_of_region;
+	for(;va_pages_iterator<va_end_of_region;va_pages_iterator += PGSIZE){
+		struct PageInfo* p_physical_page_descriptor;
+		if(!(p_physical_page_descriptor=page_alloc(ALLOC_ZERO))){
 			panic("Out of free memory");
 		}
 		if(page_insert(	e->env_pgdir,
-						pPhysicalPageDescriptor,
-						vaPagesIterator,
+						p_physical_page_descriptor,
+						(void *)va_pages_iterator,
 						PTE_W | PTE_U)){
 			panic("Page table couldn't be allocated " );
 		}
@@ -359,11 +359,44 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 	//  What?  (See env_run() and env_pop_tf() below.)
 
 	// LAB 3: Your code here.
+	struct Elf * elf_header = (struct Elf *)binary;
+	if (elf_header->e_magic != ELF_MAGIC) {
+		panic("Invalid ELF header");
+	}
+	struct Proghdr * ph  =
+			(struct Proghdr *) ((uint8_t *) elf_header + elf_header->e_phoff);
+	struct Proghdr  * eph = ph + elf_header->e_phnum;
+	//  Loading the segments is much simpler if you can move data
+	//  directly into the virtual addresses stored in the ELF binary.
+	//  So which page directory should be in force during
+	//  this function?
+	//Set CR3 register to user environment
+	lcr3(PADDR(e->env_pgdir));
+	for (; ph < eph; ph++) {
+		if (ph->p_type != ELF_PROG_LOAD) {
+			continue;
+		}
+		if(ph->p_filesz > ph->p_memsz){
+			panic("The ELF header should have ph->p_filesz <= ph->p_memsz.");
+		}
+		region_alloc(e,(void *)ph->p_va,ph->p_memsz);
+		memset((void *)ph->p_va,0,ph->p_memsz);
+		memmove((void *)ph->p_va,binary + ph->p_offset,ph->p_filesz);
+	}
+	//Entry point - first instruction to run:
+	//set eip register to hold an address of the instruction,
+	//but the environment doesn't run yet,
+	//so save the entry point to "saved registers"
+	e->env_tf.tf_eip = elf_header->e_entry;
+
+	//Return back to Kernel space
+	lcr3(PADDR(kern_pgdir));
 
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
 
 	// LAB 3: Your code here.
+	region_alloc(e, (void *) (USTACKTOP - PGSIZE), PGSIZE);
 }
 
 //
