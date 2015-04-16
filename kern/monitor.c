@@ -12,6 +12,8 @@
 #include <kern/kdebug.h>
 #include <kern/trap.h>
 
+#include <kern/pmap.h>		// Lab2: Challenge
+
 #define CMDBUF_SIZE	80	// enough for one VGA text line
 
 
@@ -110,9 +112,144 @@ int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
 	// Your code here.
+	uint32_t * ebp = (uint32_t*)read_ebp();// ebp typically carries the address
+	cprintf("Stack backtrace:\n");
+	while(ebp){
+		uint32_t* eip = (uint32_t*)EIP(ebp);
+		uint32_t* arg = (uint32_t*)ARG(ebp);
+		cprintf(" ebp %08x eip %08x args %08x %08x %08x %08x %08x\n",
+				ebp,*eip,arg[0],arg[1],arg[2],arg[3],arg[4]);
+		struct Eipdebuginfo info;
+		debuginfo_eip(*eip,&info);
+		cprintf("	%s:%d: %.*s+%d\n",
+				info.eip_file,info.eip_line,
+				info.eip_fn_namelen,info.eip_fn_name,
+				(*eip) - info.eip_fn_addr);
+		ebp=(uint32_t*)*ebp;
+	}
+	return 0;
+}
+/******************************************************************************/
+
+static int
+isStringHexValid(char *string) {
+	if (string == NULL)
+		return 1;
+	if (!(string[0] == '0' && (string[1] =='x' || string[1] == 'X')))
+		return 1;
+	int i;
+	for (i=2;string[i]!='\0';++i) {
+		if (string[i] >= '0' && string[i] <= '9')
+			continue;
+		else if (string[i] >= 'A' && string[i] <= 'F')
+			continue;
+		else if (string[i] >= 'a' && string[i] <= 'f')
+			continue;
+		else
+			return 1;
+	}
+
 	return 0;
 }
 
+int printPageDirectoryByVirtualAddress(uint32_t address) {
+	physaddr_t pde = (physaddr_t) kern_pgdir[PDX(address)];
+	cprintf(
+			"Virtual Address: 0x%08x, Page Directory Index %d,"
+			" P=%01d, W=%01d, U=%01d\n",
+			address, PDX(address),
+			(pde & PTE_P)? 1 : 0,
+			(pde & PTE_W)? 1 : 0,
+			(pde & PTE_U)? 1 : 0);
+
+	return 0;
+}
+
+int mon_showmappingsPD(int argc, char **argv, struct Trapframe *tf) {
+	if (argc != 3){
+		cprintf("You've entered %d arguments instead of 2\n", argc - 1);
+		return 1;
+	}
+	uint32_t start = strtol(argv[1], NULL, 16);
+	uint32_t end = strtol(argv[2], NULL, 16);
+	for (; start <= end; start += NPTENTRIES * PGSIZE) {
+		printPageDirectoryByVirtualAddress(start);
+	}
+	return 0;
+}
+
+int mon_showmappings(int argc, char **argv, struct Trapframe *tf) {
+	if (argc != 3){
+		cprintf("You've entered %d arguments instead of 2\n", argc - 1);
+		return 1;
+	}
+	if (isStringHexValid(argv[1])!=0 || isStringHexValid(argv[2])) {
+		cprintf("invalid hexa address %s or %s. \n",argv[1],argv[2]);
+		return 1;
+	}
+	uint32_t start = strtol(argv[1], NULL, 16) & 0xfffff000;
+	uint32_t end = strtol(argv[2], NULL, 16) & 0xfffff000;
+	uint32_t iterator = start;
+	cprintf("Show Mappings from: 0x%08x to:0x%08x\n", start, end);
+	for (; iterator <= end; iterator += PGSIZE) {
+		pte_t* pte = pgdir_walk(kern_pgdir, (const void*) iterator, 0);
+		if(pte == NULL) {
+			cprintf("0x%08x : NULL\n",iterator);
+			continue;
+		}
+		cprintf("Vaddress: 0x%08x, Paddress: 0x%08x, P=%01d, W=%01d, U=%01d \n",
+				iterator, PTE_ADDR(*pte),
+				(*pte & PTE_P)? 1 : 0,
+				(*pte & PTE_W)? 1 : 0,
+				(*pte & PTE_U)? 1 : 0);
+	}
+	return 0;
+}
+int
+mon_permissionsManage(int argc, char**argv, struct Trapframe *tf)
+{
+	if (argc != 4) {
+		cprintf("You've entered %d arguments instead of 3\n", argc - 1);
+		return 1;
+	}
+	if (isStringHexValid(argv[1])!=0) {
+		cprintf("invalid hexa address %s. \n",argv[1]);
+		return 1;
+	}
+	uintptr_t addr = strtol(argv[1], NULL, 16);
+	uint32_t flag=0;
+//	char sFlag[FLAG_LENGTH];
+	char sFlag[4];
+	strtolowercpy(sFlag,argv[3]);
+	int i;
+	for (i=0;i<NFLAGS;++i) {
+		if (strcmp(flags[i].name,sFlag)==0) {
+			flag=flags[i].value;
+			break;
+		}
+	}
+	if (i==NFLAGS) {
+		cprintf("Flag %s is not supported yet.\n",argv[3]);
+		return 1;
+	}
+	pte_t* pte = pgdir_walk(kern_pgdir,(void*)addr,(int)false);
+	if (!pte) {
+		cprintf("Page, which includes the address %s "
+				"has not been mapped yet.\n",argv[1]);
+		return 1;
+	}
+	if (strcmp(argv[2],"--set") == 0) {
+		*pte |= flag;
+	} else if (strcmp(argv[2],"--clear") == 0) {
+		*pte &= ~flag;
+	} else if (strcmp(argv[2],"--toggle") == 0) {
+		*pte^=flag;
+	} else {
+		cprintf("The option %s is not supported yet.\n",argv[2]);
+		return 1;
+	}
+	return 0;
+}
 int
 mon_dump(int argc, char** argv, struct Trapframe *tf)
 {
