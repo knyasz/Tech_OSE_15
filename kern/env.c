@@ -186,7 +186,17 @@ env_setup_vm(struct Env *e)
 	//    - The functions in kern/pmap.h are handy.
 
 	// LAB 3: Your code here.
-
+	/*
+	 * Will copy everything above UVPT entry of kern_pgdir:
+	 * Start	- PDX(UVPT)
+	 * End		- last entry of kern_pgdir (has NPDENTRIES entries)
+	 */
+	e->env_pgdir = page2kva(p);
+	memset(e->env_pgdir,"/0",PGSIZE);
+	for(i=PDX(UVPT);i<NPDENTRIES;++i){
+		e->env_pgdir[i]=kern_pgdir[i];
+	}
+	p->pp_ref = 1;
 	// UVPT maps the env's own page table read-only.
 	// Permissions: kernel R, user R
 	e->env_pgdir[PDX(UVPT)] = PADDR(e->env_pgdir) | PTE_P | PTE_U;
@@ -274,6 +284,25 @@ region_alloc(struct Env *e, void *va, size_t len)
 	//   'va' and 'len' values that are not page-aligned.
 	//   You should round va down, and round (va + len) up.
 	//   (Watch out for corner-cases!)
+
+	if (!va || !e ){
+		return;
+	}
+	uintptr_t vaStartOFRegion = ROUNDDOWN(va,PGSIZE);
+	uintptr_t vaEndOfRegion = ROUNDUP(va+len,PGSIZE);
+	uintptr_t vaPagesIterator = vaStartOFRegion;
+	for(;vaPagesIterator<vaEndOfRegion;vaPagesIterator += PGSIZE){
+		struct PageInfo* pPhysicalPageDescriptor;
+		if(!(pPhysicalPageDescriptor=page_alloc(ALLOC_ZERO))){
+			panic("Out of free memory");
+		}
+		if(page_insert(	e->env_pgdir,
+						pPhysicalPageDescriptor,
+						vaPagesIterator,
+						PTE_W | PTE_U)){
+			panic("Page table couldn't be allocated " );
+		}
+	}
 }
 
 //
