@@ -285,15 +285,26 @@ mon_dump(int argc, char** argv, struct Trapframe *tf)
 	}
 
 	uintptr_t* vAddress = fromAddr;
-	for(;vAddress<=toAddr;++vAddress){
+	while(vAddress<=toAddr){
 		pte_t* pPTe = pgdir_walk(kern_pgdir,vAddress,(int)false);
 		if(pPTe){
 			if(*pPTe & PTE_P){
-				cprintf("\t 0x%08x keeps ====> 0x%08x\n",(uintptr_t)vAddress,*vAddress);
+				cprintf("\t 0x%08x keeps ====> 0x%08x\n",
+						(uintptr_t)vAddress,*vAddress);
+				++vAddress;
+				if (vAddress==0){
+					break;
+				}
 				continue;
 			}
 		}
 		cprintf("\t 0x%08x is not mapped yet\n",(uintptr_t)vAddress);
+		++vAddress;
+		vAddress = (uintptr_t*)ROUNDUP((uintptr_t)vAddress,PGSIZE);
+		if (vAddress==0){
+			break;
+		}
+
 	}
 	cprintf("\n");
 	return 0;
