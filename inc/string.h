@@ -6,6 +6,7 @@
 int	strlen(const char *s);
 int	strnlen(const char *s, size_t size);
 char *	strcpy(char *dst, const char *src);
+char *	strtolowercpy(char *dst, const char *src);
 char *	strncpy(char *dst, const char *src, size_t size);
 char *	strcat(char *dst, const char *src);
 size_t	strlcpy(char *dst, const char *src, size_t size);
@@ -19,7 +20,6 @@ void *	memcpy(void *dst, const void *src, size_t len);
 void *	memmove(void *dst, const void *src, size_t len);
 int	memcmp(const void *s1, const void *s2, size_t len);
 void *	memfind(const void *s, int c, size_t len);
-
 long	strtol(const char *s, char **endptr, int base);
 
 #endif /* not JOS_INC_STRING_H */
