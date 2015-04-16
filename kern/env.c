@@ -288,8 +288,8 @@ region_alloc(struct Env *e, void *va, size_t len)
 	if (!va || !e ){
 		return;
 	}
-	uintptr_t va_start_of_region = ROUNDDOWN(va,PGSIZE);
-	uintptr_t va_end_of_region = ROUNDUP(va+len,PGSIZE);
+	uintptr_t va_start_of_region = ROUNDDOWN((uintptr_t)va,PGSIZE);
+	uintptr_t va_end_of_region = ROUNDUP((uintptr_t)(va)+len,PGSIZE);
 	uintptr_t va_pages_iterator = va_start_of_region;
 	for(;va_pages_iterator<va_end_of_region;va_pages_iterator += PGSIZE){
 		struct PageInfo* p_physical_page_descriptor;
