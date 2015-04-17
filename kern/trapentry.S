@@ -41,7 +41,7 @@
 	pushl $(num);							\
 	jmp _alltraps
 
-.text
+
 
 /*
  * Lab 3: Your code here for generating entry points for the different traps.
@@ -78,6 +78,8 @@ Security Exception				30 (0x1E)		-			#SX			Yes
 Reserved						31 (0x1F)		-			-			No
 Triple Fault					-				-			-			No
 */
+
+.text
 TRAPHANDLER_NOEC(interrupt_vector0, T_DIVIDE)
 TRAPHANDLER_NOEC(interrupt_vector1, T_DEBUG)
 TRAPHANDLER_NOEC(interrupt_vector2, T_NMI)
@@ -87,13 +89,13 @@ TRAPHANDLER_NOEC(interrupt_vector5, T_BOUND)
 TRAPHANDLER_NOEC(interrupt_vector6, T_ILLOP)
 TRAPHANDLER_NOEC(interrupt_vector7, T_DEVICE)
 TRAPHANDLER(interrupt_vector8, T_DBLFLT)
-TRAPHANDLER_NOEC(interrupt_vector9, T_COPROC)	/* Reserved */
+TRAPHANDLER_NOEC(interrupt_vector9, 9)	/* Reserved */
 TRAPHANDLER(interrupt_vector10, T_TSS)
 TRAPHANDLER(interrupt_vector11, T_SEGNP)
 TRAPHANDLER(interrupt_vector12, T_STACK)
 TRAPHANDLER(interrupt_vector13, T_GPFLT)
 TRAPHANDLER(interrupt_vector14, T_PGFLT)
-TRAPHANDLER_NOEC(interrupt_vector15, T_RES)		/* Reserved */
+TRAPHANDLER_NOEC(interrupt_vector15, 15)		/* Reserved */
 TRAPHANDLER_NOEC(interrupt_vector16, T_FPERR)
 TRAPHANDLER(interrupt_vector17, T_ALIGN)
 TRAPHANDLER_NOEC(interrupt_vector18, T_MCHK)
@@ -336,6 +338,24 @@ TRAPHANDLER_NOEC(interrupt_vector254, 254)
 TRAPHANDLER_NOEC(interrupt_vector255, 255)
 
 
+
+
+/*
+ * Lab 3: Your code here for _alltraps
+ */
+.globl _alltraps
+_alltraps:
+	// push values to make the stack look like a struct Trapframe
+	pushl %ds			# -> Data Segment
+	pushl %es			# -> Extra Segment
+	pushal				# Push EAX, ECX, EDX, EBX, original ESP, EBP, ESI, EDI
+	//load GD_KD into %ds and %es
+	movw $GD_KD, %ax
+	movw %ax, %es
+	movw %ax, %ds
+	//pushl %esp to pass a pointer to the Trapframe as an argument to trap()
+	pushl %esp
+	call trap
 
 
 .data
@@ -597,20 +617,3 @@ trap_handlers:
 	.long interrupt_vector253
 	.long interrupt_vector254
 	.long interrupt_vector255
-
-/*
- * Lab 3: Your code here for _alltraps
- */
-.text
-_alltraps:
-	// push values to make the stack look like a struct Trapframe
-	pushl %ds			# -> Data Segment
-	pushl %es			# -> Extra Segment
-	pushal				# Push EAX, ECX, EDX, EBX, original ESP, EBP, ESI, EDI
-	//load GD_KD into %ds and %es
-	movw $GD_KD, %ax
-	movw %ax, %es
-	movw %ax, %ds
-	//pushl %esp to pass a pointer to the Trapframe as an argument to trap()
-	pushl %esp
-	call trap

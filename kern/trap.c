@@ -59,12 +59,37 @@ static const char *trapname(int trapno)
 }
 
 
+#define TRAP 		1
+#define INTERRUPT	0
+#define KERNEL_CPL	0
+#define USR_CPL		3
+#define MAX_IDT_NUM	256
+
 void
 trap_init(void)
 {
 	extern struct Segdesc gdt[];
 
 	// LAB 3: Your code here.
+
+
+	extern long trap_handlers[MAX_IDT_NUM];
+	uint16_t i = 0;
+	for(;i<MAX_IDT_NUM;++i){
+		/*
+		 * SETGATE(gate, istrap, sel, off, dpl) usage here
+		 * gate		idt entry - idt[i]
+		 * istrap	TRAP/INTERRUPT here all are Interrupts
+		 * sel 		code segment (kernel) - here GD_KD
+		 * off		place in trapentry.S:trap_handlers i.e.:trap_handlers[i]
+		 * dpl		Descriptor privilege level - now all = 0 (Kernel usage only)
+		 */
+		SETGATE(idt[i],INTERRUPT,GD_KD,trap_handlers[i],KERNEL_CPL);
+	}
+	// init break point
+	SETGATE(idt[T_BRKPT], 0, GD_KT, trap_handlers[T_BRKPT], USR_CPL);
+	// init syscall
+	SETGATE(idt[T_SYSCALL], 0, GD_KT, trap_handlers[T_SYSCALL], USR_CPL);
 
 	// Per-CPU setup 
 	trap_init_percpu();
