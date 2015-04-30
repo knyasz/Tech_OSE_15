@@ -213,7 +213,6 @@ env_setup_vm(struct Env *e)
 	for(i=PDX(UTOP);i<NPDENTRIES;++i){
 		e->env_pgdir[i]=kern_pgdir[i];
 	}
-//	p->pp_ref = 1;
 	// UVPT maps the env's own page table read-only.
 	// Permissions: kernel R, user R
 	e->env_pgdir[PDX(UVPT)] = PADDR(e->env_pgdir) | PTE_P | PTE_U;

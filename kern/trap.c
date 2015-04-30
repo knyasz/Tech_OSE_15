@@ -74,6 +74,8 @@ trap_init(void)
 
 
 	extern long trap_handlers[MAX_IDT_NUM];
+//	extern long trap_handlers[32];
+//	extern long interrupt_vector48;
 	uint16_t i = 0;
 	for(;i<MAX_IDT_NUM;++i){
 		/*
@@ -91,6 +93,8 @@ trap_init(void)
 	// init syscall - set up the interrupt descriptor
 	//to allow user processes to cause that interrupt
 	SETGATE(idt[T_SYSCALL], 0, GD_KT, trap_handlers[T_SYSCALL], USR_CPL);
+	//After chalenge 1
+//	SETGATE(idt[T_SYSCALL], 0, GD_KT, interrupt_vector48, USR_CPL);
 
 	// Per-CPU setup 
 	trap_init_percpu();
