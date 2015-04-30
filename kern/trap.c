@@ -73,11 +73,17 @@ trap_init(void)
 	// LAB 3: Your code here.
 
 
-	extern long trap_handlers[MAX_IDT_NUM];
-//	extern long trap_handlers[32];
-//	extern long interrupt_vector48;
+//	extern long trap_handlers[MAX_IDT_NUM];
+	// Challenge 1
+	extern long trap_handlers[33];
+	extern long interrupt_vector48;
+
+
+
 	uint16_t i = 0;
-	for(;i<MAX_IDT_NUM;++i){
+	// Challenge 1
+//	for(;i<MAX_IDT_NUM;++i){
+	for(;i<31;++i){
 		/*
 		 * SETGATE(gate, istrap, sel, off, dpl) usage here
 		 * gate		idt entry - idt[i]
@@ -92,9 +98,9 @@ trap_init(void)
 	SETGATE(idt[T_BRKPT], 0, GD_KT, trap_handlers[T_BRKPT], USR_CPL);
 	// init syscall - set up the interrupt descriptor
 	//to allow user processes to cause that interrupt
-	SETGATE(idt[T_SYSCALL], 0, GD_KT, trap_handlers[T_SYSCALL], USR_CPL);
+//	SETGATE(idt[T_SYSCALL], 0, GD_KT, trap_handlers[T_SYSCALL], USR_CPL);
 	//After chalenge 1
-//	SETGATE(idt[T_SYSCALL], 0, GD_KT, interrupt_vector48, USR_CPL);
+	SETGATE(idt[T_SYSCALL], 0, GD_KT, &interrupt_vector48, USR_CPL);
 
 	// Per-CPU setup 
 	trap_init_percpu();
