@@ -131,6 +131,14 @@ env_init(void)
 			envs[i].env_link = NULL;
 		}
 	}
+//	env_free_list = NULL;
+//	int i;
+//	for(i = NENV - 1; i >= 0; i--) {
+//		envs[i].env_status = ENV_FREE;
+//		envs[i].env_id = 0;
+//		envs[i].env_link = env_free_list;
+//		env_free_list = &envs[i];
+//	}
 
 	// Per-CPU part of the initialization
 	env_init_percpu();
@@ -199,12 +207,13 @@ env_setup_vm(struct Env *e)
 	 * Start	- PDX(UVPT)
 	 * End		- last entry of kern_pgdir (has NPDENTRIES entries)
 	 */
+	p->pp_ref++;
 	e->env_pgdir = page2kva(p);
 	memset(e->env_pgdir,0,PGSIZE);
-	for(i=PDX(UVPT);i<NPDENTRIES;++i){
+	for(i=PDX(UTOP);i<NPDENTRIES;++i){
 		e->env_pgdir[i]=kern_pgdir[i];
 	}
-	p->pp_ref = 1;
+//	p->pp_ref = 1;
 	// UVPT maps the env's own page table read-only.
 	// Permissions: kernel R, user R
 	e->env_pgdir[PDX(UVPT)] = PADDR(e->env_pgdir) | PTE_P | PTE_U;
