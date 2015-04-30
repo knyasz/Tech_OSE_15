@@ -113,36 +113,6 @@ boot_alloc(uint32_t n)
 //		result = nextfree;
 	}
 	return result;
-
-//	return NULL;
-}ode here.
-	result = nextfree;
-	if (n>0){
-		nextfree = (char*)(ROUNDUP(n,PGSIZE) + (uint32_t)nextfree);
-//		result = (char*)KERNBASE;
-		if ((uint32_t)result>=(uint32_t)nextfree){
-			panic("out of memory");
-		}
-	}else{//n==0
-//		result = nextfree;
-	}
-	return result;
-
-
-//	return NULL;
-}
-	result = nextfree;
-	if (n>0){
-		nextfree = (char*)(ROUNDUP(n,PGSIZE) + (uint32_t)nextfree);
-//		result = (char*)KERNBASE;
-		if ((uint32_t)result>=(uint32_t)nextfree){
-			panic("out of memory");
-		}
-	}else{//n==0
-//		result = nextfree;
-	}
-	return result;
-
 //	return NULL;
 }
 
