@@ -80,15 +80,16 @@ trap_init(void)
 		 * SETGATE(gate, istrap, sel, off, dpl) usage here
 		 * gate		idt entry - idt[i]
 		 * istrap	TRAP/INTERRUPT here all are Interrupts
-		 * sel 		code segment (kernel) - here GD_KD
+		 * sel 		code segment (kernel) - here GD_KT
 		 * off		place in trapentry.S:trap_handlers i.e.:trap_handlers[i]
 		 * dpl		Descriptor privilege level - now all = 0 (Kernel usage only)
 		 */
-		SETGATE(idt[i],INTERRUPT,GD_KD,trap_handlers[i],KERNEL_CPL);
+		SETGATE(idt[i],INTERRUPT,GD_KT,trap_handlers[i],KERNEL_CPL);
 	}
-	// init break point
+	// init break point - will be used by user debugger thus dpl = USR_CPL
 	SETGATE(idt[T_BRKPT], 0, GD_KT, trap_handlers[T_BRKPT], USR_CPL);
-	// init syscall
+	// init syscall - set up the interrupt descriptor
+	//to allow user processes to cause that interrupt
 	SETGATE(idt[T_SYSCALL], 0, GD_KT, trap_handlers[T_SYSCALL], USR_CPL);
 
 	// Per-CPU setup 
@@ -168,6 +169,26 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
+	if (tf->tf_trapno == T_PGFLT){
+		page_fault_handler(tf);
+		return;
+	}
+	if (tf->tf_trapno == T_BRKPT){
+		monitor(tf);
+		return;
+	}
+	if (tf->tf_trapno == T_SYSCALL){
+		uint32_t result = syscall(
+									tf->tf_regs.reg_eax,
+									tf->tf_regs.reg_edx,
+									tf->tf_regs.reg_ecx,
+									tf->tf_regs.reg_ebx,
+									tf->tf_regs.reg_edi,
+									tf->tf_regs.reg_esi);
+		tf->tf_regs.reg_eax=result;
+		return;
+	}
+
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
@@ -229,7 +250,8 @@ page_fault_handler(struct Trapframe *tf)
 	// Handle kernel-mode page faults.
 
 	// LAB 3: Your code here.
-
+	print_trapframe(tf);
+//	panic("Kernel page fault");
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
 
