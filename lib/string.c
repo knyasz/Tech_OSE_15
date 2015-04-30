@@ -40,6 +40,15 @@ strcpy(char *dst, const char *src)
 }
 
 char *
+strtolowercpy(char *dst, const char *src){
+	dst = strcpy(dst,src);
+	for(;*dst;++dst){
+		*dst = (*dst>='A' && *dst<='Z') ? *dst|0x60 : *dst;
+	}
+	return dst;
+}
+
+char *
 strcat(char *dst, const char *src)
 {
 	int len = strlen(dst);

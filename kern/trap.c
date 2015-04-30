@@ -66,12 +66,48 @@ static const char *trapname(int trapno)
 }
 
 
+#define TRAP 		1
+#define INTERRUPT	0
+#define KERNEL_CPL	0
+#define USR_CPL		3
+#define MAX_IDT_NUM	256
+
 void
 trap_init(void)
 {
 	extern struct Segdesc gdt[];
 
 	// LAB 3: Your code here.
+
+
+//	extern long trap_handlers[MAX_IDT_NUM];
+	// Challenge 1
+	extern long trap_handlers[33];
+	extern long interrupt_vector48;
+
+
+
+	uint16_t i = 0;
+	// Challenge 1
+//	for(;i<MAX_IDT_NUM;++i){
+	for(;i<31;++i){
+		/*
+		 * SETGATE(gate, istrap, sel, off, dpl) usage here
+		 * gate		idt entry - idt[i]
+		 * istrap	TRAP/INTERRUPT here all are Interrupts
+		 * sel 		code segment (kernel) - here GD_KT
+		 * off		place in trapentry.S:trap_handlers i.e.:trap_handlers[i]
+		 * dpl		Descriptor privilege level - now all = 0 (Kernel usage only)
+		 */
+		SETGATE(idt[i],INTERRUPT,GD_KT,trap_handlers[i],KERNEL_CPL);
+	}
+	// init break point - will be used by user debugger thus dpl = USR_CPL
+	SETGATE(idt[T_BRKPT], 0, GD_KT, trap_handlers[T_BRKPT], USR_CPL);
+	// init syscall - set up the interrupt descriptor
+	//to allow user processes to cause that interrupt
+//	SETGATE(idt[T_SYSCALL], 0, GD_KT, trap_handlers[T_SYSCALL], USR_CPL);
+	//After chalenge 1
+	SETGATE(idt[T_SYSCALL], 0, GD_KT, &interrupt_vector48, USR_CPL);
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -173,6 +209,26 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
+	if (tf->tf_trapno == T_PGFLT){
+		page_fault_handler(tf);
+		return;
+	}
+	if (tf->tf_trapno == T_BRKPT){
+		monitor(tf);
+		return;
+	}
+	if (tf->tf_trapno == T_SYSCALL){
+		uint32_t result = syscall(
+									tf->tf_regs.reg_eax,
+									tf->tf_regs.reg_edx,
+									tf->tf_regs.reg_ecx,
+									tf->tf_regs.reg_ebx,
+									tf->tf_regs.reg_edi,
+									tf->tf_regs.reg_esi);
+		tf->tf_regs.reg_eax=result;
+		return;
+	}
+
 
 	// Handle spurious interrupts
 	// The hardware sometimes raises these because of noise on the
@@ -268,7 +324,8 @@ page_fault_handler(struct Trapframe *tf)
 	// Handle kernel-mode page faults.
 
 	// LAB 3: Your code here.
-
+	print_trapframe(tf);
+//	panic("Kernel page fault");
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
 
