@@ -171,6 +171,9 @@ mem_init(void)
 	page_init();
 
 	check_page_free_list(1);
+
+//	panic("check_page_free_list - done !!!");
+
 	check_page_alloc();
 	check_page();
 
@@ -285,7 +288,17 @@ mem_init_mp(void)
 	//     Permissions: kernel RW, user NONE
 	//
 	// LAB 4: Your code here:
-
+	uint32_t i;
+	for (i=0;i<NCPU;++i){
+		uintptr_t kstacktop_i = KSTACKTOP - i * (KSTKSIZE + KSTKGAP);
+		boot_map_region(
+				kern_pgdir,
+//				kstacktop_i,
+				kstacktop_i - KSTKSIZE,//mapping up - from here to kstacktop_i
+				KSTKSIZE,
+				PADDR(&percpu_kstacks[i]),
+				PTE_P | PTE_W);
+	}
 }
 
 // --------------------------------------------------------------
@@ -329,12 +342,21 @@ page_init(void)
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
+//	    }
 	}
 	//  1) Mark physical page 0 as in use.
 	pages[1].pp_link = pages[0].pp_link;
 	//  2) The rest of base memory, [PGSIZE, npages_basemem * PGSIZE)
 	//     is free.
 
+
+	// LAB 4:
+	// Change your code to mark the physical page at MPENTRY_PADDR
+	// as in use
+	// Remember - pages[i+1].pp_link = pages[i]
+	// while pages[i] is unused :)
+	pages[(MPENTRY_PADDR/PGSIZE) + 1].pp_link =
+			pages[MPENTRY_PADDR/PGSIZE ].pp_link;
 
 	//  3) Then comes the IO hole [IOPHYSMEM, EXTPHYSMEM), which must
 	//     never be allocated.
@@ -624,6 +646,15 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
+	void * ret = (void*)base;
+	size_t actual_size = ROUNDUP(size,PGSIZE);
+	if (base + actual_size > MMIOLIM ||
+			base + actual_size  < base){
+		panic("mmio_map_region - rounded up size exceeds MMIOLIM ");
+	}
+	boot_map_region(kern_pgdir, base, actual_size, pa, PTE_PCD|PTE_PWT|PTE_W);
+	base+=actual_size;
+	return ret;
 	panic("mmio_map_region not implemented");
 }
 
@@ -877,7 +908,6 @@ check_kern_pgdir(void)
 		for (i = 0; i < KSTKGAP; i += PGSIZE)
 			assert(check_va2pa(pgdir, base + i) == ~0);
 	}
-
 	// check PDE permissions
 	for (i = 0; i < NPDENTRIES; i++) {
 		switch (i) {
