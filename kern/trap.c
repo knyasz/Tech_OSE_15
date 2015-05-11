@@ -14,7 +14,7 @@
 #include <kern/cpu.h>
 #include <kern/spinlock.h>
 
-static struct Taskstate ts;
+//static struct Taskstate ts;
 
 /* For debugging, so print_trapframe can distinguish between printing
  * a saved trapframe and printing the current trapframe and print some
@@ -158,8 +158,8 @@ trap_init_percpu(void)
 	// Load the TSS selector (like other segment selectors, the
 	// bottom three bits are special; we leave them 0)
 	// thus (i<<3) :)
-	ltr(GD_TSS0  + (i<< 3) );
-
+//	ltr(GD_TSS0  + (i<< 3) );
+	ltr(GD_TSS0 + i * sizeof(struct Segdesc));
 
 	// From Lab 3
 	//	// Setup a TSS so that we get the right stack
