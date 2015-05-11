@@ -130,7 +130,7 @@ mp_main(void)
 	// Your code here:
 
 	// Remove this after you finish Exercise 4
-	for (;;);
+//	for (;;);
 }
 
 /*
