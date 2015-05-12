@@ -590,6 +590,10 @@ env_run(struct Env *e)
 	curenv = e;
 	curenv->env_status = ENV_RUNNING;
 	++curenv->env_runs;
+
+	//lab4 start - release the lock right before switching to user mode
+	unlock_kernel();
+	//lab4 end
 	lcr3(PADDR(curenv->env_pgdir));
 
 	//Step 2
