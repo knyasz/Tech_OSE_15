@@ -40,7 +40,7 @@ sched_yield(void)
 	envid_t next_eid_index_to_run = next_eid_index;
 	idle = NULL;
 	for(i=0;i<NENV;++i){
-		next_eid_index_to_run = (next_eid_index_to_run + i) % NENV;
+		next_eid_index_to_run = (next_eid_index + i) % NENV;
 		if (envs[next_eid_index_to_run].env_status == ENV_RUNNABLE){
 			idle = &envs[next_eid_index_to_run];
 			break;
@@ -51,7 +51,7 @@ sched_yield(void)
 	}
 	// Looks like there are no runnable environments
 	// if current env (on my CPU) is running - let it run
-	if (curenv && curenv->env_status == ENV_RUNNING){
+	else if (curenv && curenv->env_status == ENV_RUNNING){
 		env_run(curenv);
 	}
 
