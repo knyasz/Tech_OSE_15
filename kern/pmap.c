@@ -539,10 +539,9 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 	}
 	++(pp->pp_ref);
 	page_remove(pgdir,va);//Will not Deallocate the pp since pp_ref > 0
-//	*pPageTableEntryVA = PTE_ADDR(page2pa(pp)) | perm | PTE_P;
+	*pPageTableEntry = PTE_ADDR(page2pa(pp)) | perm | PTE_P;
 //	pgdir[PDX(va)] = PTE_ADDR(pgdir[PDX(va)])| perm | PTE_P;
 
-	*pPageTableEntry = page2pa(pp) | perm | PTE_P;
 
 	return 0;
 }
