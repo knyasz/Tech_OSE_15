@@ -126,6 +126,22 @@ TRAPHANDLER_NOEC(interrupt_vector29, 29)		/* Reserved */
 TRAPHANDLER(interrupt_vector30, 30)
 TRAPHANDLER_NOEC(interrupt_vector31, 31)		/* Reserved */
 
+TRAPHANDLER_NOEC(interrupt_vector32, 32)
+TRAPHANDLER_NOEC(interrupt_vector33, 33)
+TRAPHANDLER_NOEC(interrupt_vector34, 34)
+TRAPHANDLER_NOEC(interrupt_vector35, 35)
+TRAPHANDLER_NOEC(interrupt_vector36, 36)
+TRAPHANDLER_NOEC(interrupt_vector37, 37)
+TRAPHANDLER_NOEC(interrupt_vector38, 38)
+TRAPHANDLER_NOEC(interrupt_vector39, 39)
+TRAPHANDLER_NOEC(interrupt_vector40, 40)
+TRAPHANDLER_NOEC(interrupt_vector41, 41)
+TRAPHANDLER_NOEC(interrupt_vector42, 42)
+TRAPHANDLER_NOEC(interrupt_vector43, 43)
+TRAPHANDLER_NOEC(interrupt_vector44, 44)
+TRAPHANDLER_NOEC(interrupt_vector45, 45)
+TRAPHANDLER_NOEC(interrupt_vector46, 46)
+TRAPHANDLER_NOEC(interrupt_vector47, 47)
 
 TRAPHANDLER_NOEC(interrupt_vector48, T_SYSCALL)
 

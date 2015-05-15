@@ -82,7 +82,7 @@ trap_init(void)
 
 //	extern long trap_handlers[MAX_IDT_NUM];
 	// Challenge 1
-	extern long trap_handlers[33];
+	extern long trap_handlers[48];
 	extern long interrupt_vector48;
 
 
@@ -90,7 +90,7 @@ trap_init(void)
 	uint16_t i = 0;
 	// Challenge 1
 //	for(;i<MAX_IDT_NUM;++i){
-	for(;i<31;++i){
+	for(;i<47;++i){
 		/*
 		 * SETGATE(gate, istrap, sel, off, dpl) usage here
 		 * gate		idt entry - idt[i]
@@ -264,6 +264,11 @@ trap_dispatch(struct Trapframe *tf)
 	// Handle clock interrupts. Don't forget to acknowledge the
 	// interrupt using lapic_eoi() before calling the scheduler!
 	// LAB 4: Your code here.
+	if (tf->tf_trapno == IRQ_OFFSET + IRQ_TIMER){
+		lapic_eoi();
+		sched_yield();
+		return ;
+	}
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
@@ -384,6 +389,42 @@ page_fault_handler(struct Trapframe *tf)
 	//   (the 'tf' variable points at 'curenv->env_tf').
 
 	// LAB 4: Your code here.
+	struct PageInfo *pp;
+	int ret;
+	// if upcall exist
+	if (curenv->env_pgfault_upcall) {
+		//Building user trap
+		struct UTrapframe *utf;
+		if (((uintptr_t)(UXSTACKTOP - PGSIZE) <= tf->tf_esp)
+				&&
+			(tf->tf_esp < (uintptr_t)UXSTACKTOP )) {
+			/*If the user environment
+			is already running on the user exception stack
+			when an exception occurs,
+			then the page fault handler itself has faulted.
+			In this case, you should start the new stack frame
+			just under the current tf->tf_esp rather than at UXSTACKTOP.
+			You should first push an empty 32-bit word, then a struct UTrapframe.
+			*/
+			utf = (struct UTrapframe *)(tf->tf_esp - 4 - sizeof(struct UTrapframe));
+		} else {
+			utf = (struct UTrapframe *)(UXSTACKTOP - sizeof(struct UTrapframe));
+		}
+		// Ensure you're in user memory
+		user_mem_assert(curenv, utf, sizeof(struct UTrapframe),
+				PTE_U | PTE_W | PTE_P);
+		utf->utf_esp = tf->tf_esp;
+		utf->utf_eflags = tf->tf_eflags;
+		utf->utf_eip = tf->tf_eip;
+		utf->utf_regs = tf->tf_regs;
+		utf->utf_err = tf->tf_err;
+		utf->utf_fault_va = fault_va;
+
+		// at trap(), if in user mode, tf = &curenv->env_tf;
+		tf->tf_esp = (uintptr_t)utf;
+		tf->tf_eip = (uintptr_t)curenv->env_pgfault_upcall;
+		env_run(curenv);
+	}
 
 	// Destroy the environment that caused the fault.
 	cprintf("[%08x] user fault va %08x ip %08x\n",

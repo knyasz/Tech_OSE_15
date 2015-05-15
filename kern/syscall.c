@@ -335,7 +335,57 @@ static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
 	// LAB 4: Your code here.
-	panic("sys_ipc_try_send not implemented");
+  int r;
+  struct Env * dstenv;
+  pte_t * pte;
+  struct PageInfo *pp;
+  // Check parameters
+  // Check envid and env status
+  r = envid2env(envid, &dstenv, 0);
+  if (r < 0) 
+    return -E_BAD_ENV;
+  if (!dstenv->env_ipc_recving)
+    return -E_IPC_NOT_RECV;
+  
+  // Check srcva and perm
+  if ((uintptr_t)srcva < UTOP) {
+    if (PGOFF(srcva) != 0)
+      return  -E_INVAL;
+
+    if ((perm & (PTE_U | PTE_P)) != (PTE_U | PTE_P)) 
+      return -E_INVAL;
+
+    if (((perm | PTE_SYSCALL) != PTE_SYSCALL))
+      return -E_INVAL;
+
+    // Check physical page exist
+    pp = page_lookup(curenv->env_pgdir, srcva, &pte);
+    if ((uintptr_t)srcva < UTOP && !pp)
+      return -E_INVAL;
+
+    // Check perm write conflict
+    if ((perm & PTE_W) && !(*pte & PTE_W))
+      return -E_INVAL;
+
+    // Send mapping 
+    if (dstenv->env_ipc_dstva) {
+      // Do page map
+      r = page_insert(dstenv->env_pgdir, pp, dstenv->env_ipc_dstva, perm);
+      if (r < 0)
+        return -E_NO_MEM;
+      // Make page perm
+      dstenv->env_ipc_perm = perm;
+    }
+  }
+
+  // If srcva >= UTOP, no mapping transfered and no errors.
+
+  dstenv->env_ipc_recving = false;
+  dstenv->env_ipc_value = value;
+  dstenv->env_ipc_from = curenv->env_id;
+  dstenv->env_status = ENV_RUNNABLE;
+
+  return 0;
 }
 
 // Block until a value is ready.  Record that you want to receive
@@ -353,7 +403,17 @@ static int
 sys_ipc_recv(void *dstva)
 {
 	// LAB 4: Your code here.
-	panic("sys_ipc_recv not implemented");
+  // check dstva
+  if ((uintptr_t)dstva < UTOP && (PGOFF(dstva) != 0))
+    return -E_INVAL;
+
+  // Record this env want to receive
+  curenv->env_ipc_recving = true;
+  curenv->env_ipc_dstva = dstva;
+  
+  // Block this env, and giveup CPU
+  curenv->env_status = ENV_NOT_RUNNABLE;
+
 	return 0;
 }
 
@@ -364,41 +424,70 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	// Call the function corresponding to the 'syscallno' parameter.
 	// Return any appropriate return value.
 	// LAB 3: Your code here.
-	switch(syscallno) {
-		case(SYS_cputs):
-			sys_cputs((const char*) a1, (size_t) a2);
-			return 0;
-			break;
-		case(SYS_cgetc):
-			return (int32_t)sys_cgetc();
-			break;
-		case(SYS_getenvid):
-			return (int32_t)sys_getenvid();
-			break;
-		case(SYS_env_destroy):
-			return (int32_t)sys_env_destroy((envid_t) a1);
-			break;
-		case SYS_yield :
-			sys_yield();
-			break;
-		case SYS_exofork:
-			return sys_exofork();
-		case SYS_env_set_status:
-			return sys_env_set_status(a1, a2);
-		case SYS_env_set_pgfault_upcall:
-			return sys_env_set_pgfault_upcall(a1, (void *) a2);
-		case SYS_page_alloc:
-			return sys_page_alloc(a1, (void *)a2, a3);
-		case SYS_page_map:
-			return sys_page_map(a1, (void *)a2, a3, (void *)a4, a5);
-		case SYS_page_unmap:
-			return sys_page_unmap(a1, (void *)a2);
-		case(NSYSCALLS):
-		default:
-			return -E_INVAL;
-			break;
-	}
-	return 0;
-//	panic("syscall not implemented");
+  
+  uint32_t ret = 0;
+  switch (syscallno) {
+  case SYS_cputs : 
+    sys_cputs((char *)a1, (size_t)a2);
+    break;
+
+  case SYS_cgetc :
+    ret = (uint32_t)sys_cgetc();
+    break;
+
+  case SYS_getenvid :
+    ret = (uint32_t)sys_getenvid();
+    break;
+
+  case SYS_env_destroy :
+    ret = (uint32_t)sys_env_destroy((envid_t)a1);
+    break;
+
+  case SYS_yield : 
+    sys_yield(); 
+    break;
+  
+  case SYS_page_alloc : 
+    ret = (uint32_t)sys_page_alloc((envid_t)a1, (void *)a2, (int)a3);
+    break;
+
+  case SYS_page_map : 
+    ret = (uint32_t)sys_page_map((envid_t)a1, (void *)a2,
+                            (envid_t)a3, (void *)a4, (int)a5);
+    break;
+
+  case SYS_page_unmap :
+    ret = (uint32_t)sys_page_unmap((envid_t)a1, (void *)a2);
+    break;
+
+  case SYS_exofork : 
+    ret = (uint32_t)sys_exofork();
+    break;
+
+  case SYS_env_set_status : 
+    ret = (uint32_t)sys_env_set_status((envid_t)a1, (int)a2);
+    break;
+  
+  case SYS_env_set_pgfault_upcall : 
+    ret = (uint32_t)sys_env_set_pgfault_upcall((envid_t)a1, (void*)a2);
+    break;
+  
+  case SYS_ipc_try_send :
+    ret = (uint32_t)sys_ipc_try_send((envid_t)a1, (uint32_t)a2, (void *)a3, 
+      (unsigned)a4);
+    break;
+
+  case SYS_ipc_recv : 
+    ret = (uint32_t)sys_ipc_recv((void *)a1);
+    break;
+  
+  default :
+    ret = -E_INVAL;
+    break;
+  }
+
+	//panic("syscall not implemented");
+  return ret;
+
 }
 
