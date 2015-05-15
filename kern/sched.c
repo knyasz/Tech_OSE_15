@@ -36,7 +36,7 @@ sched_yield(void)
 	if(curenv){
 		current_eid_index = ENVX(curenv->env_id);
 	}
-	envid_t next_eid_index = (current_eid_index+1) % NENV;
+	envid_t next_eid_index = (current_eid_index) % NENV;
 	envid_t next_eid_index_to_run = next_eid_index;
 	idle = NULL;
 	for(i=0;i<NENV;++i){
