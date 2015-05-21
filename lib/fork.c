@@ -80,25 +80,45 @@ duppage(envid_t envid, unsigned pn)
 	int r;
 
 	// LAB 4: Your code here.
-  void * va = (void *) (pn << PGSHIFT);
 
-  // check page dir PTE_P exist
-  if (!(uvpd[PDX(pn << PGSHIFT)] & PTE_P )) 
-    panic("duppage : page dir PTE_P is not set.\n");
+	// check page dir PTE_P exist
+	if (!(uvpd[PDX(pn << PGSHIFT)] & PTE_P )){
+		panic("duppage : page dir PTE_P is not set.\n");
+	}
+	// check page table PTE_P presents
+	if (!(uvpt[pn] & PTE_P)){
+		panic("duppage : pn is not present in uvpt");
+	}
+	/*
+	 *  The page mapping can be copied if:
+	 *  PTE_W or PTE_COW or PTE_SHARE
+	 */
+	if (!(uvpt[pn] & ( PTE_W | PTE_COW | PTE_SHARE))){
+		panic("duppage : page is not PTE_W or PTE_COW or PTE_SHARE.\n");
+	}
 
-  // check page is PTE_W or PTE_COW
-  if (!(uvpt[pn] & ( PTE_W | PTE_COW )))
-    panic("duppage : page is not PTE_W or PTE_COW.\n");
+	// Each duplicated page will have the following permissions:
+	int perm = PTE_U | PTE_COW | PTE_P; // make PTE_W invalid
+	/*
+	 * If the page table entry has the PTE_SHARE bit set,
+	 * just copy the mapping directly. (You should use PTE_SYSCALL)
+	 */
+	if(uvpt[pn] & PTE_SHARE){
+		perm = uvpt[pn] & PTE_SYSCALL;
+	}
 
-  // map child's page as PTE_COW
-  r = sys_page_map(0, va, envid, va, PTE_U | PTE_COW | PTE_P);
-  if (r < 0)
-    panic("duppage : sys_page_map error : %e.\n",r);
- 
-  // remap parent's page as PTE_COW, make PTE_W invalid.
-  r = sys_page_map(0, va, 0, va, PTE_U | PTE_COW | PTE_P);
-  if (r < 0) 
-    panic("dupage : sys_page_map erro : %e.\n", r);
+	void * va = (void *) (pn << PGSHIFT);
+	// map child's page as PTE_COW
+	r = sys_page_map(0, va, envid, va, perm);
+	if (r < 0){
+		panic("duppage : sys_page_map error : %e.\n",r);
+	}
+
+	// remap parent's page as PTE_COW, make PTE_W invalid.
+	r = sys_page_map(0, va, 0, va, perm);
+	if (r < 0){
+		panic("dupage : sys_page_map error : %e.\n", r);
+	}
 
 	return 0;
 }
