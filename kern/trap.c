@@ -272,7 +272,14 @@ trap_dispatch(struct Trapframe *tf)
 
 	// Handle keyboard and serial interrupts.
 	// LAB 5: Your code here.
-
+	if (tf->tf_trapno == IRQ_OFFSET + IRQ_KBD) {
+		kbd_intr();
+		return;
+	}
+	if (tf->tf_trapno == IRQ_OFFSET + IRQ_SERIAL) {
+		serial_intr();
+		return;
+	}
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
 	if (tf->tf_cs == GD_KT)
@@ -396,6 +403,7 @@ page_fault_handler(struct Trapframe *tf)
 	int ret;
 	// if upcall exist
 	if (curenv->env_pgfault_upcall) {
+
 		//Building user trap
 		struct UTrapframe *utf;
 		if (((uintptr_t)(UXSTACKTOP - PGSIZE) <= tf->tf_esp)
@@ -414,8 +422,12 @@ page_fault_handler(struct Trapframe *tf)
 			utf = (struct UTrapframe *)(UXSTACKTOP - sizeof(struct UTrapframe));
 		}
 		// Ensure you're in user memory
+
+
 		user_mem_assert(curenv, utf, sizeof(struct UTrapframe),
 				PTE_U | PTE_W | PTE_P);
+
+
 		utf->utf_esp = tf->tf_esp;
 		utf->utf_eflags = tf->tf_eflags;
 		utf->utf_eip = tf->tf_eip;
@@ -434,5 +446,9 @@ page_fault_handler(struct Trapframe *tf)
 		curenv->env_id, fault_va, tf->tf_eip);
 	print_trapframe(tf);
 	env_destroy(curenv);
+
+
+
+
 }
 

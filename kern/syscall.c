@@ -142,13 +142,14 @@ sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
 	// Remember to check whether the user has supplied us with a good
 	// address!
 	// Are we able to access the given trapframe
-	int r=user_mem_check(curenv, tf, sizeof(struct Trapframe), PTE_U);
+	struct Env *e;
+	int  r = envid2env(envid,&e,true);//only me or my father can change the env
 	if(r<0){
 		return -E_BAD_ENV;
 	}
-	struct Env *e;
-	r = envid2env(envid,&e,true);//only me or my father can change the env
+	r=user_mem_check(curenv, tf, sizeof(struct Trapframe), PTE_U);
 	if(r<0){
+		cprintf("kern/syscall.c:sys_env_set_trapframe\n");
 		return -E_BAD_ENV;
 	}
 	//Maybe "=" could work too ?
