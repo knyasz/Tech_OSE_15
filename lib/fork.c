@@ -89,32 +89,29 @@ duppage(envid_t envid, unsigned pn)
 	if (!(uvpt[pn] & PTE_P)){
 		panic("duppage : pn is not present in uvpt");
 	}
-	/*
-	 *  The page mapping can be copied if:
-	 *  PTE_W or PTE_COW or PTE_SHARE
-	 */
-	if (!(uvpt[pn] & ( PTE_W | PTE_COW | PTE_SHARE))){
-		panic("duppage : page is not PTE_W or PTE_COW or PTE_SHARE.\n");
-	}
 
-	// Each duplicated page will have the following permissions:
-	int perm = PTE_U | PTE_COW | PTE_P; // make PTE_W invalid
+	int perm = PTE_P | PTE_U;
+
+	if ((uvpt[pn] & ( PTE_W | PTE_COW ))){
+		perm |= PTE_COW;//perm = PTE_P | PTE_U | PTE_COW
+	}
 	/*
 	 * If the page table entry has the PTE_SHARE bit set,
-	 * just copy the mapping directly. (You should use PTE_SYSCALL)
+	 * just copy the mapping directly.
+	 * (You should use PTE_SYSCALL
+	 * to mask out the relevant bits from the page table entry)
 	 */
 	if(uvpt[pn] & PTE_SHARE){
-		perm = uvpt[pn] & PTE_SYSCALL;
+		//#define PTE_SYSCALL	(PTE_AVAIL | PTE_P | PTE_W | PTE_U)
+		perm = uvpt[pn] & PTE_SYSCALL;//mask all flags but the above
 	}
 
 	void * va = (void *) (pn << PGSHIFT);
-	// map child's page as PTE_COW
+//	void * va = (void *) (pn * PGSIZE);
 	r = sys_page_map(0, va, envid, va, perm);
 	if (r < 0){
 		panic("duppage : sys_page_map error : %e.\n",r);
 	}
-
-	// remap parent's page as PTE_COW, make PTE_W invalid.
 	r = sys_page_map(0, va, 0, va, perm);
 	if (r < 0){
 		panic("dupage : sys_page_map error : %e.\n", r);
@@ -173,7 +170,7 @@ fork(void)
   // first see if pdt & PTE_P or not
   for (va = UTEXT ; va < USTACKTOP; va += PGSIZE){
     if ((uvpd[PDX(va)] & PTE_P) && (uvpt[PGNUM(va)] & PTE_P) && 
-        (uvpt[PGNUM(va)] & PTE_U) && (uvpt[PGNUM(va)] & (PTE_W | PTE_COW)))
+        (uvpt[PGNUM(va)] & PTE_U))//&& (uvpt[PGNUM(va)] & (PTE_W | PTE_COW)))
       duppage(envid, PGNUM(va));
     
     // For pages that are not PTE_W or PTE_COW, just ignore it, some of 
