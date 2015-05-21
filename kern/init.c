@@ -56,7 +56,11 @@ i386_init(void)
 	boot_aps();
 
 	// Start fs.
-	ENV_CREATE(fs_fs, ENV_TYPE_FS);
+	/*
+	 * You will need to comment out the ENV_CREATE(fs_fs) line in kern/init.c
+	 * because fs/fs.c tries to do some I/O, which JOS does not allow yet.
+	 */
+	//ENV_CREATE(fs_fs, ENV_TYPE_FS);
 
 #if defined(TEST)
 	// Don't touch -- used by grading script!
