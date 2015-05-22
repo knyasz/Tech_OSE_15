@@ -42,19 +42,101 @@ bc_pgfault(struct UTrapframe *utf)
     if (r < 0){
     	panic("bc_pgfault : ide_read failed : %e", r);
     }
-
-/*************************************************************************/
+	// Allocate a page in the disk map region, read the contents
+	// of the block from the disk into that page, and mark the
+	// page not-dirty (since reading the data from disk will mark
+	// the page dirty).
+	//
+    if (sys_page_map(0, addr, 0, addr, PTE_SYSCALL) < 0) {
+        panic("bg_pgfault: failed to mark disk page as non dirty\n");
+    }
+	// Check that the block we read was allocated. (exercise for
+	// the reader: why do we do this *after* reading the block
+	// in?)
+	if (bitmap && block_is_free(blockno))
+		panic("reading free block %08x\n", blockno);
 
 }
+/*************************************************************************/
+    // Flush the contents of the block containing VA out to disk if
+    // necessary, then clear the PTE_D bit using sys_page_map.
+    // If the block is not in the block cache or is not dirty, does
+    // nothing.
+    // Hint: Use va_is_mapped, va_is_dirty, and ide_write.
+    // Hint: Use the PTE_SYSCALL constant when calling sys_page_map.
+    // Hint: Don't forget to round addr down.
+void
+flush_block(void *addr)
+{
+	uint32_t blockno = ((uint32_t)addr - DISKMAP) / BLKSIZE;
 
+	if (addr < (void*)DISKMAP || addr >= (void*)(DISKMAP + DISKSIZE))
+		panic("flush_block of bad va %08x", addr);
 
+	// LAB 5: Your code here.
+//	panic("flush_block not implemented");
+	if (va_is_mapped(addr) && va_is_dirty(addr)) {
+		addr = ROUNDDOWN(addr, PGSIZE);
+		uint32_t secno = blockno * BLKSECTS;
+		ide_write(secno, addr, BLKSECTS/*num of sectors in block*/);
+		sys_page_map(0, addr, 0, addr, PTE_SYSCALL);
+	}
+}
+// Is this virtual address mapped?
+bool
+va_is_mapped(void *va)
+{
+	return (uvpd[PDX(va)] & PTE_P) && (uvpt[PGNUM(va)] & PTE_P);
+}
+
+// Is this virtual address dirty?
+bool
+va_is_dirty(void *va)
+{
+	return (uvpt[PGNUM(va)] & PTE_D) != 0;
+}
+/*****************************************************************/
+// Test that the block cache works, by smashing the superblock and
+// reading it back.
+static void
+check_bc(void)
+{
+	struct Super backup;
+
+	// back up super block
+	memmove(&backup, diskaddr(1), sizeof backup);
+
+	// smash it
+	strcpy(diskaddr(1), "OOPS!\n");
+	flush_block(diskaddr(1));
+	assert(va_is_mapped(diskaddr(1)));
+	assert(!va_is_dirty(diskaddr(1)));
+
+	// clear it out
+	sys_page_unmap(0, diskaddr(1));
+	assert(!va_is_mapped(diskaddr(1)));
+
+	// read it back in
+	assert(strcmp(diskaddr(1), "OOPS!\n") == 0);
+
+	// fix it
+	memmove(diskaddr(1), &backup, sizeof backup);
+	flush_block(diskaddr(1));
+
+	cprintf("block cache is good\n");
+}
+/*****************************************************************/
 void
 bc_init(void)
 {
 	struct Super super;
 	set_pgfault_handler(bc_pgfault);
 
+
+
 	// cache the super block by reading it once
 	memmove(&super, diskaddr(1), sizeof super);
+
+	check_bc();
 }
 
