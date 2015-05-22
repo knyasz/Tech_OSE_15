@@ -39,8 +39,13 @@ struct Dev devfile =
 	.dev_id =	'f',
 	.dev_name =	"file",
 	.dev_read =	devfile_read,
+	//challenge
+	.dev_write =	devfile_write,
+
 	.dev_close =	devfile_flush,
 	.dev_stat =	devfile_stat,
+	//given on MIT lab
+	.dev_trunc =	devfile_trunc
 };
 
 // Open a file (or directory).
@@ -66,6 +71,8 @@ open(const char *path, int mode)
 	// If any step after fd_alloc fails, use fd_close to free the
 	// file descriptor.
 
+	// LAB 5: Your code here.
+//	panic("open not implemented");
 	int r;
 	struct Fd *fd;
 
@@ -125,6 +132,31 @@ devfile_read(struct Fd *fd, void *buf, size_t n)
 	return r;
 }
 
+// Write at most 'n' bytes from 'buf' to 'fd' at the current seek position.
+//
+// Returns:
+//	 The number of bytes successfully written.
+//	 < 0 on error.
+static ssize_t
+devfile_write(struct Fd *fd, const void *buf, size_t n)
+{
+	// Make an FSREQ_WRITE request to the file system server.  Be
+	// careful: fsipcbuf.write.req_buf is only so large, but
+	// remember that write is always allowed to write *fewer*
+	// bytes than requested.
+	// LAB 5: Your code here
+//	panic("devfile_write not implemented");
+	int r;
+	size_t max_data_size = PGSIZE - (sizeof(int) + sizeof(size_t));
+	fsipcbuf.write.req_fileid = fd->fd_file.id;
+	fsipcbuf.write.req_n = MIN(n, max_data_size );
+	memmove(&fsipcbuf.write.req_buf, buf, fsipcbuf.write.req_n);
+	if ((r = fsipc(FSREQ_WRITE, NULL)) < 0)
+		return r;
+	assert(r <= n);
+	assert(r <= PGSIZE);
+	return r;
+}
 
 static int
 devfile_stat(struct Fd *fd, struct Stat *st)
@@ -138,6 +170,35 @@ devfile_stat(struct Fd *fd, struct Stat *st)
 	st->st_size = fsipcbuf.statRet.ret_size;
 	st->st_isdir = fsipcbuf.statRet.ret_isdir;
 	return 0;
+}
+/**********************************************************************/
+// Truncate or extend an open file to 'size' bytes
+static int
+devfile_trunc(struct Fd *fd, off_t newsize)
+{
+	fsipcbuf.set_size.req_fileid = fd->fd_file.id;
+	fsipcbuf.set_size.req_size = newsize;
+	return fsipc(FSREQ_SET_SIZE, NULL);
+}
+
+// Delete a file
+int
+remove(const char *path)
+{
+	if (strlen(path) >= MAXPATHLEN)
+		return -E_BAD_PATH;
+	strcpy(fsipcbuf.remove.req_path, path);
+	return fsipc(FSREQ_REMOVE, NULL);
+}
+
+// Synchronize disk with buffer cache
+int
+sync(void)
+{
+	// Ask the file server to update the disk
+	// by writing any dirty blocks in the buffer cache.
+
+	return fsipc(FSREQ_SYNC, NULL);
 }
 
 

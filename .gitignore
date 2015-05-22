@@ -1,0 +1,14 @@
+obj
+*~
+.cproject
+.gdbinit
+.project
+.pydevproject
+gradelib.pyc
+init.d
+init.s
+*.out
+*.out*
+*.tar.gz
+
+

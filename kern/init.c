@@ -56,11 +56,16 @@ i386_init(void)
 
 	// Acquire the big kernel lock before waking up APs
 	// Your code here:
+	lock_kernel();
 
 	// Starting non-boot CPUs
 	boot_aps();
 
 	// Start fs.
+	/*
+	 * You will need to comment out the ENV_CREATE(fs_fs) line in kern/init.c
+	 * because fs/fs.c tries to do some I/O, which JOS does not allow yet.
+	 */
 	ENV_CREATE(fs_fs, ENV_TYPE_FS);
 
 #if !defined(TEST_NO_NS)
@@ -73,7 +78,16 @@ i386_init(void)
 	ENV_CREATE(TEST, ENV_TYPE_USER);
 #else
 	// Touch all you want.
-	ENV_CREATE(user_icode, ENV_TYPE_USER);
+	//	ENV_CREATE(user_primes, ENV_TYPE_USER);
+	// create three (or more!) environments
+	// that all run the program user/yield.c
+	//int i;
+	//for (i = 0; i < 3; i++){
+	//	ENV_CREATE(user_yield, ENV_TYPE_USER);
+	//}
+	//ENV_CREATE(user_icode, ENV_TYPE_USER);
+//	ENV_CREATE(user_spawnhello, ENV_TYPE_USER);
+//	ENV_CREATE(user_writemotd, ENV_TYPE_USER);
 #endif // TEST*
 
 	// Should not be necessary - drains keyboard because interrupt has given up.
@@ -133,7 +147,8 @@ mp_main(void)
 	// only one CPU can enter the scheduler at a time!
 	//
 	// Your code here:
-
+	lock_kernel();
+	sched_yield();
 	// Remove this after you finish Exercise 4
 	for (;;);
 }
