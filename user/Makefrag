@@ -1,6 +1,8 @@
 OBJDIRS += user
 
-USERLIBS = jos
+USERLIBS += lwip
+
+USERLIBS += jos
 
 $(OBJDIR)/user/%.o: user/%.c $(OBJDIR)/.vars.USER_CFLAGS
 	@echo + cc[USER] $<
