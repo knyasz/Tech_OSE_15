@@ -454,7 +454,8 @@ static int
 sys_time_msec(void)
 {
 	// LAB 6: Your code here.
-	panic("sys_time_msec not implemented");
+	return time_msec();
+//	panic("sys_time_msec not implemented");
 }
 
 // Dispatches to the correct kernel function, passing the arguments.
@@ -465,69 +466,76 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	// Return any appropriate return value.
 	// LAB 3: Your code here.
   
-  uint32_t ret = 0;
-  switch (syscallno) {
-  case SYS_cputs : 
-    sys_cputs((char *)a1, (size_t)a2);
-    break;
+	uint32_t ret = 0;
+	switch (syscallno) {
+		default :
+			ret = -E_INVAL;
+			break;
 
-  case SYS_cgetc :
-    ret = (uint32_t)sys_cgetc();
-    break;
+		case SYS_cputs :
+			sys_cputs((char *)a1, (size_t)a2);
+			break;
 
-  case SYS_getenvid :
-    ret = (uint32_t)sys_getenvid();
-    break;
+		case SYS_cgetc :
+			ret = (uint32_t)sys_cgetc();
+			break;
 
-  case SYS_env_destroy :
-    ret = (uint32_t)sys_env_destroy((envid_t)a1);
-    break;
+		case SYS_getenvid :
+			ret = (uint32_t)sys_getenvid();
+			break;
 
-  case SYS_yield : 
-    sys_yield(); 
-    break;
-  
-  case SYS_page_alloc : 
-    ret = (uint32_t)sys_page_alloc((envid_t)a1, (void *)a2, (int)a3);
-    break;
+		case SYS_env_destroy :
+			ret = (uint32_t)sys_env_destroy((envid_t)a1);
+			break;
 
-  case SYS_page_map : 
-    ret = (uint32_t)sys_page_map((envid_t)a1, (void *)a2,
-                            (envid_t)a3, (void *)a4, (int)a5);
-    break;
+		case SYS_yield :
+			sys_yield();
+			break;
 
-  case SYS_page_unmap :
-    ret = (uint32_t)sys_page_unmap((envid_t)a1, (void *)a2);
-    break;
+		case SYS_page_alloc :
+			ret = (uint32_t)sys_page_alloc((envid_t)a1, (void *)a2, (int)a3);
+			break;
 
-  case SYS_exofork : 
-    ret = (uint32_t)sys_exofork();
-    break;
+		case SYS_page_map :
+		ret = (uint32_t)sys_page_map((envid_t)a1, (void *)a2,
+								(envid_t)a3, (void *)a4, (int)a5);
+		break;
 
-  case SYS_env_set_status : 
-    ret = (uint32_t)sys_env_set_status((envid_t)a1, (int)a2);
-    break;
-  
-  case SYS_env_set_pgfault_upcall : 
-    ret = (uint32_t)sys_env_set_pgfault_upcall((envid_t)a1, (void*)a2);
-    break;
-  
-  case SYS_ipc_try_send :
-    ret = (uint32_t)sys_ipc_try_send((envid_t)a1, (uint32_t)a2, (void *)a3, 
-      (unsigned)a4);
-    break;
+		case SYS_page_unmap :
+		ret = (uint32_t)sys_page_unmap((envid_t)a1, (void *)a2);
+		break;
 
-  case SYS_ipc_recv : 
-    ret = (uint32_t)sys_ipc_recv((void *)a1);
-    break;
-  case SYS_env_set_trapframe :
-	ret = (uint32_t)sys_env_set_trapframe((envid_t)a1,(struct Trapframe *) a2);
-	break;
-  
-  default :
-    ret = -E_INVAL;
-    break;
-  }
+		case SYS_exofork :
+			ret = (uint32_t)sys_exofork();
+			break;
+
+		case SYS_env_set_status :
+			ret = (uint32_t)sys_env_set_status((envid_t)a1, (int)a2);
+			break;
+
+		case SYS_env_set_pgfault_upcall :
+			ret = (uint32_t)sys_env_set_pgfault_upcall((envid_t)a1, (void*)a2);
+			break;
+
+		case SYS_ipc_try_send :
+			ret = (uint32_t)sys_ipc_try_send((envid_t)a1,
+												(uint32_t)a2,
+												(void *)a3,
+												(unsigned)a4);
+			break;
+
+		case SYS_ipc_recv :
+			ret = (uint32_t)sys_ipc_recv((void *)a1);
+			break;
+		case SYS_env_set_trapframe :
+			ret = (uint32_t)sys_env_set_trapframe((envid_t)a1,(struct Trapframe *) a2);
+			break;
+
+		case SYS_time_msec :
+			ret = (uint32_t)sys_time_msec();
+			break;
+
+	}
 
 	//panic("syscall not implemented");
   return ret;
