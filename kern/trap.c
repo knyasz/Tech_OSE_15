@@ -268,14 +268,15 @@ trap_dispatch(struct Trapframe *tf)
 	if (tf->tf_trapno == IRQ_OFFSET + IRQ_TIMER){
 		lapic_eoi();
 		sched_yield();
-		return ;
-	}
 
 	// Add time tick increment to clock interrupts.
 	// Be careful! In multiprocessors, clock interrupts are
 	// triggered on every CPU.
 	// LAB 6: Your code here.
-
+		time_tick();
+		sched_yeld();
+		return ;
+	}
 
 	// Handle keyboard and serial interrupts.
 	// LAB 5: Your code here.
