@@ -458,6 +458,14 @@ sys_time_msec(void)
 //	panic("sys_time_msec not implemented");
 }
 
+static int
+sys_net_try_send(char* data, uint32_t len) {
+	if ((uintptr_t) data >= UTOP || (uintptr_t) data < UTEXT){
+		return -E_INVAL;
+	}
+	return e1000_transmit_packet(data,len);
+}
+
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
 syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
@@ -535,8 +543,9 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 			ret = (uint32_t)sys_time_msec();
 			break;
 
-//		case SYS_net_try_send :
-//			ret = (uint32_t)sys_net_try_send(char* a1, uint32_t a2);
+		case SYS_net_try_send :
+			ret = (uint32_t)sys_net_try_send( (char*) a1, (uint32_t) a2);
+			break;
 
 	}
 
