@@ -75,7 +75,7 @@ int e1000_transmit_packet(	char* 	data_to_transmit,
 #define E1000_TXD_CMD_RS     0x08000000
 // Descriptor Done - when set - the buffer can be filled by SW to be sent
 #define E1000_TXD_STAT_DD    0x00000001
-
+#define E1000_TXD_CMD_EOP    0x01000000 /* End of Packet */
 
 
 /*
@@ -150,6 +150,8 @@ typedef struct tx_packet_buffer tx_packet_buffer;
 
 /* rx descriptor min threshold 1/2 of the descriptors lengh*/
 #define E1000_RCTL_RDMTS_TRESHOLD_HALF	0x00000000
+
+#define E1000_RXD_STAT_DD			0x01		/* Descriptor Done */
 
 /*
  * Receive descriptor

@@ -175,6 +175,14 @@ int e1000_transmit_packet(	char* 	data_to_transmit,
 	// Ensure cmd:RS is set to make future status:DD data valid
 	tx_descriptors[TDT_index].cmd |= E1000_TXD_CMD_RS;
 
+	//For multi-descriptor packets,
+	//packet status is provided in the final descriptor of the packet (EOP set).
+	//If EOP is not set for a descriptor,
+	//only the Address, Length, and DD bits are valid.
+	//Here - each packet will be held in one descriptor only,
+	//Thus every descriptor is an end of packet.
+	tx_descriptors[TDT_index].status |=  E1000_TXD_CMD_EOP;
+
 	//Advance the Queue tail (TDT)
 	p_e1000_MMIO[E1000_TDT] = (++TDT_index)%E1000_NUM_OF_TX_DESCRIPTORS;
 
@@ -330,5 +338,18 @@ void e1000_rx_init(){
  *	 "Address Valid" bit in RAH
  */
 	p_e1000_MMIO[E1000_RAH] |= E1000_RAH_AV;
+}
+
+int e1000_receive_packet(char* p_received_data, uint32_t* p_received_length){
+	uint32_t length;
+	uint32_t RDT_index = p_e1000_MMIO[E1000_RDT];
+
+	if( ! rx_descriptors[RDT_index].status & E1000_RXD_STAT_DD){
+		return - (E_RX_EMPTY);
+	}
+
+
+
+	return 0;
 }
 
