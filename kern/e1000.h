@@ -9,8 +9,8 @@ int e1000_pci_attach(struct pci_func *pcif);
 void e1000_tx_init();
 void e1000_rx_init();
 
-int e1000_transmit_packet(	char* 	data_to_transmit,
-							int 	data_size_bytes);
+int e1000_transmit_packet(char* data_to_transmit, int data_size_bytes);
+int e1000_receive_packet(char* p_data_buffer, uint32_t*  p_data_length);
 
 /*
  * Our p_e1000_MMIO array has each cell of 32 bits,

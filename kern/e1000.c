@@ -125,8 +125,7 @@ void e1000_tx_init(){
 	p_e1000_MMIO[E1000_TIPG] |= E1000_TIPG_IPGR2_VALUE;
 }
 
-int e1000_transmit_packet(	char* 	data_to_transmit,
-							int 	data_size_bytes){
+int e1000_transmit_packet(char* data_to_transmit, int data_size_bytes){
 
 	if(data_size_bytes > TX_PACKET_SIZE){
 		return - (E_PKT_TOO_LONG);

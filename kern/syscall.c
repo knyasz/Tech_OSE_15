@@ -467,6 +467,16 @@ sys_net_try_send(char* data, uint32_t len) {
 	}
 	return e1000_transmit_packet(data,len);
 }
+static int
+sys_net_try_receive( char* buffer, uint32_t* length){
+	if ((uintptr_t) buffer >= UTOP || (uintptr_t) buffer < UTEXT){
+		return -E_INVAL;
+	}
+	if ((uintptr_t) length >= UTOP || (uintptr_t) length < UTEXT){
+		return -E_INVAL;
+	}
+	return e1000_receive_packet(buffer,length);
+}
 
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
@@ -549,6 +559,9 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 			ret = (uint32_t)sys_net_try_send( (char*) a1, (uint32_t) a2);
 			break;
 
+		case SYS_net_try_receive :
+			ret = (uint32_t)sys_net_try_receive( (char*) a1, (uint32_t*) a2);
+			break;
 	}
 
 	//panic("syscall not implemented");
