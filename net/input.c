@@ -18,7 +18,7 @@ input(envid_t ns_envid)
 
 	int result=0;
 	while ( ( result=sys_net_try_receive(buffer,&length) )== E_RX_EMPTY){
-		sys_yeld();
+		sys_yield();
 	}
 	if (result<0){
 		panic ("net/input : net_try_receive result is %e.",result);
@@ -37,7 +37,7 @@ input(envid_t ns_envid)
 	// If a page is already mapped at 'va', that page is unmapped as a
 	// side effect.
 	while(sys_page_alloc(0,&nsipcbuf,perm) < 0){
-		sys_yeld();
+		sys_yield();
 	}
 
 	nsipcbuf.pkt.jp_len = length;
