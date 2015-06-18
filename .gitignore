@@ -10,5 +10,7 @@ init.s
 *.out
 *.out*
 *.tar.gz
+qemu.pcap
+qemu.pcap*
 
 
