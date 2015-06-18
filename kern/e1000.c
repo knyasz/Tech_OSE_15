@@ -180,16 +180,34 @@ int e1000_transmit_packet(	char* 	data_to_transmit,
 
 	return 0;
 }
+
+// Receive descriptors
+rx_desctiptor rx_descriptors[E1000_NUM_OF_TX_DESCRIPTORS] __attribute__ ((aligned (16)));
+// Receive buffers
+rx_packet_buffer rx_packet_buffers[E1000_NUM_OF_TX_DESCRIPTORS];
 //
-//// Receive descriptors
-//rx_desctiptor rx_descriptors[E1000_NUM_OF_TX_DESCRIPTORS] __attribute__ ((aligned (16)));
-//// Receive buffers
-//rx_packet_buffer rx_packet_buffers[E1000_NUM_OF_TX_DESCRIPTORS];
-//
-//void e1000_tx_init(){
-//	/*****************************************************
-//	 Receive Initialization 14.4
-//	 *****************************************************/
+void e1000_rx_init(){
+	/*****************************************************
+	 Receive Initialization 14.4
+	 *****************************************************/
+/*
+ * Program the Receive Address Register(s) (RAL/RAH)
+ * with the desired Ethernet addresses.
+ * RAL[0]/RAH[0] should always be used to store
+ * the Individual Ethernet MAC address of the Ethernet controller.
+ *
+ * QEMU's default MAC address of 52:54:00:12:34:56
+ *
+ * MAC addresses are written from lowest-order byte to highest-order byte,
+ * so 52:54:00:12 are the low-order 32 bits of the MAC address
+ * and 34:56 are the high-order 16 bits.
+ *
+ */
+
+
+
+
+
 //	/*
 //	 * Set up the receive queue and configure the E1000 by following
 //	 * the process in section 14.4.

@@ -3,6 +3,8 @@
 
 #include <kern/pci.h>
 
+#include <inc/mmu.h>
+
 
 volatile  uint32_t * p_e1000_MMIO;
 
@@ -88,10 +90,7 @@ struct tx_desc
 } __attribute__((packed));// minimum required memory will be used
 typedef struct tx_desc tx_desctiptor;
 
-/*
- * The maximum size of an Ethernet packet is 1518 bytes,
- * which bounds how big the buffer needs to be.
- */
+
 struct tx_packet_buffer
 {
 	uint8_t buffer[TX_PACKET_SIZE];
@@ -106,23 +105,37 @@ void e1000_tx_init();
 int e1000_transmit_packet(	char* 	data_to_transmit,
 							int 	data_size_bytes);
 
+
+
+
+
+
+
 /*************Receive Definitions****************/
 #define E1000_NUM_OF_RX_DESCRIPTORS 		128
-#define RX_PACKET_SIZE				1518 // Bytes - uint_8t
+/*
+ * If you make your receive packet buffers large enough and disable long packets,
+ * you won't have to worry about packets spanning multiple receive buffers.
+ */
+#define RX_PACKET_SIZE				PGSIZE // Bytes - uint_8t
+
+
+/* Receive Address (RW Array) - can't initialize with single command */
+#define E1000_RA					BYTE_TO_WORD(0x05400)
 /* RX Descriptor Base Address Low - RW */
-#define E1000_RDBAL    0x02800
+#define E1000_RDBAL    				BYTE_TO_WORD(0x02800)
 /* RX Descriptor Base Address High - RW */
-#define E1000_RDBAH    0x02804
+#define E1000_RDBAH    				BYTE_TO_WORD(0x02804)
 /* RX Descriptor Length - RW */
-#define E1000_RDLEN    0x02808
+#define E1000_RDLEN    				BYTE_TO_WORD(0x02808)
 /* RX Descriptor Head - RW */
-#define E1000_RDH      0x02810
+#define E1000_RDH					BYTE_TO_WORD(0x02810)
 /* RX Descriptor Tail - RW */
-#define E1000_RDT      0x02818
+#define E1000_RDT 					BYTE_TO_WORD(0x02818)
 /* RX Desc Base Address Low (0) - RW */
-#define E1000_RDBAL0   E1000_RDBAL
+#define E1000_RDBAL0   				E1000_RDBAL
 /* RX Desc Base Address High (0) - RW */
-#define E1000_RDBAH0   E1000_RDBAH
+#define E1000_RDBAH0   				E1000_RDBAH
 
 /*
  * Receive descriptor
@@ -138,13 +151,11 @@ struct rx_desc
 } __attribute__((packed));// minimum required memory will be used
 typedef struct rx_desc rx_desctiptor;
 
-/*
- * The maximum size of an Ethernet packet is 1518 bytes,
- * which bounds how big the buffer needs to be.
- */
+
 struct rx_packet_buffer
 {
 	uint8_t buffer[RX_PACKET_SIZE];
+	uint16_t length;
 } __attribute__((packed));// minimum required memory will be used
 typedef struct rx_packet_buffer rx_packet_buffer;
 
