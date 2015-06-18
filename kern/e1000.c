@@ -235,7 +235,7 @@ void e1000_rx_init(){
  * Set the Receive Descriptor Length (RDLEN) register to the size (in bytes)
  *  of the descriptor ring.
  */
-	p_e1000_MMIO[E1000_TDLEN] = sizeof(tx_desctiptor) *
+	p_e1000_MMIO[E1000_RDLEN] = sizeof(rx_desctiptor) *
 								E1000_NUM_OF_RX_DESCRIPTORS;
 
 /*
@@ -259,22 +259,16 @@ void e1000_rx_init(){
 			0,
 			sizeof(rx_packet_buffer) * E1000_NUM_OF_RX_DESCRIPTORS);
 
-	int buffer_i;
-	for(buffer_i=0; buffer_i<E1000_NUM_OF_RX_DESCRIPTORS; buffer_i++){
-		rx_packet_buffers[buffer_i].length = RX_PACKET_SIZE;
-	}
-
 	//Connect descriptors to buffers - Ex10
 	int i;
 	for (i = 0; i < E1000_NUM_OF_RX_DESCRIPTORS; i++) {
 		rx_descriptors[i].addr = PADDR(rx_packet_buffers[i].buffer);
-		rx_descriptors[i].length = rx_packet_buffers[i].length;
 	}
 
 	//Initialize the Head and Tail, Tail points to one descriptor beyond the
 	//last valid descriptor in the descriptor ring
 	p_e1000_MMIO[E1000_RDH] = 0;
-	p_e1000_MMIO[E1000_RDT] = 0;
+	p_e1000_MMIO[E1000_RDT] = E1000_NUM_OF_RX_DESCRIPTORS - 1;
 
 /*
  * Program the Receive Control (RCTL) register with appropriate values
@@ -347,13 +341,13 @@ int e1000_receive_packet(char* p_data_buffer, uint32_t*  p_data_length){
 		return - (E_RX_EMPTY);
 	}
 	if( ! (rx_descriptors[RDT_index].status & E1000_RXD_STAT_EOP) ){
-		panic ("No Jumbo backets "
+		panic ("No Jumbo packets "
 				"- E1000_RXD_STAT_EOP is unset at RDT = %d",RDT_index);
 	}
 	// We take the minimal length between the sent packet length,
 	// and the allocated memory - user gave us
-	length =  *p_data_length < rx_descriptors[RDT_index].length ?
-			 *p_data_length : rx_descriptors[RDT_index].length;
+	length =  *p_data_length < RX_PACKET_SIZE ?
+			 *p_data_length : RX_PACKET_SIZE;
 
 	memmove(p_data_buffer,rx_packet_buffers[RDT_index].buffer,length);
 	* p_data_length=length;

@@ -74,7 +74,7 @@ int e1000_receive_packet(char* p_data_buffer, uint32_t*  p_data_length);
 // Report Status - set to make DD bit valid
 #define E1000_TXD_CMD_RS     0x08
 // Descriptor Done - when set - the buffer can be filled by SW to be sent
-#define E1000_TXD_STAT_DD    0x00000001
+#define E1000_TXD_STAT_DD    0x01
 #define E1000_TXD_CMD_EOP    0x01  /* End of Packet */
 
 
