@@ -203,7 +203,7 @@ void e1000_rx_init(){
  * and 34:56 are the high-order 16 bits.
  *
  */
-	uint8_t* p_RA = (uint8_t*)p_e1000_MMIO[E1000_RA];
+	uint8_t* p_RA = (uint8_t*)(&p_e1000_MMIO[E1000_RA]);
 	p_RA[0] = 0x52;
 	p_RA[1] = 0x54;
 	p_RA[2] = 0x00;
