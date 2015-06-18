@@ -180,99 +180,99 @@ int e1000_transmit_packet(	char* 	data_to_transmit,
 
 	return 0;
 }
-
-// Receive descriptors
-rx_desctiptor rx_descriptors[E1000_NUM_OF_TX_DESCRIPTORS] __attribute__ ((aligned (16)));
-// Receive buffers
-rx_packet_buffer rx_packet_buffers[E1000_NUM_OF_TX_DESCRIPTORS];
-
-void e1000_tx_init(){
-	/*****************************************************
-	 Receive Initialization 14.4
-	 *****************************************************/
-	/*
-	 * Set up the receive queue and configure the E1000 by following
-	 * the process in section 14.4.
-	 * boundary. - static array rx_descriptors[].
-	 * Initialize rx_descriptors[]
-	 */
-
-	//Initialize rX descriptors - Ex5
-	memset(	rx_descriptors,
-			0,
-			sizeof(rx_desctiptor) * E1000_NUM_OF_RX_DESCRIPTORS);
-
-	//Initialize TX buffers - Ex5
-	memset(	tx_packet_buffers,
-			0,
-			sizeof(rx_packet_buffer) * E1000_NUM_OF_RX_DESCRIPTORS);
-
-	//Connect descriptors to buffers - Ex5
-	int i;
-	for (i = 0; i < E1000_NUM_OF_RX_DESCRIPTORS; i++) {
-		rx_descriptors[i].addr = PADDR(rx_packet_buffers[i].buffer);
-	}
-
-	/*
-	 * Program the Receive Address Register(s) (RAL/RAH) with the desired
-	 * Ethernet addresses.
-	 * RAL[0]/RAH[0] should always be used to store the Individual Ethernet
-	 * MAC address of the Ethernet controller. This can come from the EEPROM
-	 * or from any other means (for example, on some machines, this comes from
-	 * the system PROM not the EEPROM on the adapter port).
-	 */
-	p_e1000_MMIO[E1000_TDBAL] = PADDR(rx_descriptors);
-	p_e1000_MMIO[E1000_TDBAH] = 0;
-
-	/*
-	 * Set the Transmit Descriptor Length (TDLEN) register
-	 * to the size (in bytes) of the descriptor ring.
-	 * This register must be 128-byte aligned.
-	 */
-	p_e1000_MMIO[E1000_TDLEN] = sizeof(tx_desctiptor) *
-									E1000_NUM_OF_TX_DESCRIPTORS;
-
-	/*
-	 * The Transmit Descriptor Head and Tail (TDH/TDT)
-	 * registers are initialized (by hardware) to 0b
-	 * after a power-on or a software initiated Ethernet controller reset.
-	 * Software should write 0b to both these registers to ensure this.
-	 */
-	p_e1000_MMIO[E1000_TDH] = 0;
-	p_e1000_MMIO[E1000_TDT] = 0;
-
-	/* Initialize the Transmit Control Register (TCTL) for desired operation
-	 * to include the following:
-	 */
-
-	 // Set the Enable (TCTL.EN) bit to 1b for normal operation.
-	p_e1000_MMIO[E1000_TCTL] |= E1000_TCTL_EN;
-
-	// Set the Pad Short Packets (TCTL.PSP) bit to 1b.
-	p_e1000_MMIO[E1000_TCTL] |= E1000_TCTL_PSP;
-
-	// Configure the Collision Threshold (TCTL.CT) to the desired value.
-	// Ethernet standard is 10h.
-	// This setting only has meaning in half duplex mode
-	p_e1000_MMIO[E1000_TCTL] &= ~E1000_TCTL_CT;
-	p_e1000_MMIO[E1000_TCTL] |= E1000_TCTL_CT_VALUE;
-
-	// Configure the Collision Distance (TCTL.COLD) to its expected value.
-	// For full duplex	operation, this value should be set to 40h.
-	// For gigabit half duplex, this value should be set to	200h.
-	// For 10/100 half duplex, this value should be set to 40h.
-	p_e1000_MMIO[E1000_TCTL] &= ~E1000_TCTL_COLD;
-	p_e1000_MMIO[E1000_TCTL] |= E1000_TCTL_COLD_VALUE;
-
-	// Program the Transmit IPG (TIPG) register
-	// with the  decimal values from Table 13-77. TIPG Register Bit Description.
-	// to get the minimum legal Inter Packet Gap
-	p_e1000_MMIO[E1000_TIPG] = 0;
-	p_e1000_MMIO[E1000_TIPG] |= E1000_TIPG_IPGT_VALUE;
-	p_e1000_MMIO[E1000_TIPG] |= E1000_TIPG_IPGR1_VALUE;
-	p_e1000_MMIO[E1000_TIPG] |= E1000_TIPG_IPGR2_VALUE;
-}
-
-
-
-
+//
+//// Receive descriptors
+//rx_desctiptor rx_descriptors[E1000_NUM_OF_TX_DESCRIPTORS] __attribute__ ((aligned (16)));
+//// Receive buffers
+//rx_packet_buffer rx_packet_buffers[E1000_NUM_OF_TX_DESCRIPTORS];
+//
+//void e1000_tx_init(){
+//	/*****************************************************
+//	 Receive Initialization 14.4
+//	 *****************************************************/
+//	/*
+//	 * Set up the receive queue and configure the E1000 by following
+//	 * the process in section 14.4.
+//	 * boundary. - static array rx_descriptors[].
+//	 * Initialize rx_descriptors[]
+//	 */
+//
+//	//Initialize rX descriptors - Ex5
+//	memset(	rx_descriptors,
+//			0,
+//			sizeof(rx_desctiptor) * E1000_NUM_OF_RX_DESCRIPTORS);
+//
+//	//Initialize TX buffers - Ex5
+//	memset(	tx_packet_buffers,
+//			0,
+//			sizeof(rx_packet_buffer) * E1000_NUM_OF_RX_DESCRIPTORS);
+//
+//	//Connect descriptors to buffers - Ex5
+//	int i;
+//	for (i = 0; i < E1000_NUM_OF_RX_DESCRIPTORS; i++) {
+//		rx_descriptors[i].addr = PADDR(rx_packet_buffers[i].buffer);
+//	}
+//
+//	/*
+//	 * Program the Receive Address Register(s) (RAL/RAH) with the desired
+//	 * Ethernet addresses.
+//	 * RAL[0]/RAH[0] should always be used to store the Individual Ethernet
+//	 * MAC address of the Ethernet controller. This can come from the EEPROM
+//	 * or from any other means (for example, on some machines, this comes from
+//	 * the system PROM not the EEPROM on the adapter port).
+//	 */
+//	p_e1000_MMIO[E1000_TDBAL] = PADDR(rx_descriptors);
+//	p_e1000_MMIO[E1000_TDBAH] = 0;
+//
+//	/*
+//	 * Set the Transmit Descriptor Length (TDLEN) register
+//	 * to the size (in bytes) of the descriptor ring.
+//	 * This register must be 128-byte aligned.
+//	 */
+//	p_e1000_MMIO[E1000_TDLEN] = sizeof(tx_desctiptor) *
+//									E1000_NUM_OF_TX_DESCRIPTORS;
+//
+//	/*
+//	 * The Transmit Descriptor Head and Tail (TDH/TDT)
+//	 * registers are initialized (by hardware) to 0b
+//	 * after a power-on or a software initiated Ethernet controller reset.
+//	 * Software should write 0b to both these registers to ensure this.
+//	 */
+//	p_e1000_MMIO[E1000_TDH] = 0;
+//	p_e1000_MMIO[E1000_TDT] = 0;
+//
+//	/* Initialize the Transmit Control Register (TCTL) for desired operation
+//	 * to include the following:
+//	 */
+//
+//	 // Set the Enable (TCTL.EN) bit to 1b for normal operation.
+//	p_e1000_MMIO[E1000_TCTL] |= E1000_TCTL_EN;
+//
+//	// Set the Pad Short Packets (TCTL.PSP) bit to 1b.
+//	p_e1000_MMIO[E1000_TCTL] |= E1000_TCTL_PSP;
+//
+//	// Configure the Collision Threshold (TCTL.CT) to the desired value.
+//	// Ethernet standard is 10h.
+//	// This setting only has meaning in half duplex mode
+//	p_e1000_MMIO[E1000_TCTL] &= ~E1000_TCTL_CT;
+//	p_e1000_MMIO[E1000_TCTL] |= E1000_TCTL_CT_VALUE;
+//
+//	// Configure the Collision Distance (TCTL.COLD) to its expected value.
+//	// For full duplex	operation, this value should be set to 40h.
+//	// For gigabit half duplex, this value should be set to	200h.
+//	// For 10/100 half duplex, this value should be set to 40h.
+//	p_e1000_MMIO[E1000_TCTL] &= ~E1000_TCTL_COLD;
+//	p_e1000_MMIO[E1000_TCTL] |= E1000_TCTL_COLD_VALUE;
+//
+//	// Program the Transmit IPG (TIPG) register
+//	// with the  decimal values from Table 13-77. TIPG Register Bit Description.
+//	// to get the minimum legal Inter Packet Gap
+//	p_e1000_MMIO[E1000_TIPG] = 0;
+//	p_e1000_MMIO[E1000_TIPG] |= E1000_TIPG_IPGT_VALUE;
+//	p_e1000_MMIO[E1000_TIPG] |= E1000_TIPG_IPGR1_VALUE;
+//	p_e1000_MMIO[E1000_TIPG] |= E1000_TIPG_IPGR2_VALUE;
+//}
+//
+//
+//
+//
