@@ -152,6 +152,7 @@ typedef struct tx_packet_buffer tx_packet_buffer;
 #define E1000_RCTL_RDMTS_TRESHOLD_HALF	0x00000000
 
 #define E1000_RXD_STAT_DD			0x01		/* Descriptor Done */
+#define E1000_RXD_STAT_EOP			0x02		/* End of Packet */
 
 /*
  * Receive descriptor

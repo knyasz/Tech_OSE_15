@@ -340,15 +340,42 @@ void e1000_rx_init(){
 	p_e1000_MMIO[E1000_RAH] |= E1000_RAH_AV;
 }
 
-int e1000_receive_packet(char* p_received_data, uint32_t* p_received_length){
-	uint32_t length;
+
+/*
+ * Fill the p_data_buffer of p_data_length length
+ * with received data from net,
+ * Set the minimal value between the given p_data_length
+ * and data length which was received to p_data_length
+ *
+ * Panic on JUMBO packets
+ *
+ * return :
+ * 		E_RX_EMPTY error while no data to receive
+ * 		0 on OK
+ */
+int e1000_receive_packet(char* p_data_buffer, uint32_t*  p_data_length){
+	uint32_t length = *p_data_length;
 	uint32_t RDT_index = p_e1000_MMIO[E1000_RDT];
 
-	if( ! rx_descriptors[RDT_index].status & E1000_RXD_STAT_DD){
+	if( ! (rx_descriptors[RDT_index].status & E1000_RXD_STAT_DD) ){
 		return - (E_RX_EMPTY);
 	}
+	if( ! (rx_descriptors[RDT_index].status & E1000_RXD_STAT_EOP) ){
+		panic ("No Jumbo backets "
+				"- E1000_RXD_STAT_EOP is unset at RDT = %d",RDT_index);
+	}
+	// We take the minimal length between the sent packet length,
+	// and the allocated memory - user gave us
+	length =  *p_data_length < rx_descriptors[RDT_index].length ?
+			 *p_data_length : rx_descriptors[RDT_index].length;
 
+	memmove(p_data_buffer,rx_packet_buffers[RDT_index].buffer,length);
+	* p_data_length=length;
 
+	rx_descriptors[RDT_index].status &= ~ E1000_RXD_STAT_DD;
+	rx_descriptors[RDT_index].status &= ~ E1000_TXD_CMD_EOP;
+
+	p_e1000_MMIO[E1000_RDT] = (++RDT_index)%E1000_NUM_OF_RX_DESCRIPTORS;
 
 	return 0;
 }
