@@ -21,7 +21,8 @@ int e1000_pci_attach(struct pci_func *pcif){
 
 	//Memory map I/O for PCI device - Ex4
 	p_e1000_MMIO = mmio_map_region(pcif->reg_base[0],pcif->reg_size[0]);
-	cprintf("Should be 0x80080783 : 0x%08x \n", p_e1000_MMIO[E1000_STATUS]);
+	cprintf("E1000 device status Should be 0x80080783 : 0x%08x \n",
+			p_e1000_MMIO[E1000_STATUS]);
 	assert(p_e1000_MMIO[E1000_STATUS] == 0x80080783);
 
 	//Transmit Initialization
@@ -42,6 +43,8 @@ void e1000_tx_init(){
 	 * boundary. - static array tx_descriptors[].
 	 * Initialize tx_descriptors[]
 	 */
+
+
 	//Initialize TX descriptors - Ex5
 	memset(	tx_descriptors,
 			0,
@@ -51,11 +54,16 @@ void e1000_tx_init(){
 	memset(	tx_packet_buffers,
 			0,
 			sizeof(tx_packet_buffer) * E1000_NUM_OF_TX_DESCRIPTORS);
+	int buffer_i;
+	for(buffer_i=0;buffer_i<E1000_NUM_OF_TX_DESCRIPTORS;buffer_i++){
+		tx_packet_buffers[buffer_i].length=TX_PACKET_SIZE;
+	}
 
 	//Connect descriptors to buffers - Ex5
 	int i;
 	for (i = 0; i < E1000_NUM_OF_TX_DESCRIPTORS; i++) {
 		tx_descriptors[i].addr = PADDR(tx_packet_buffers[i].buffer);
+		tx_descriptors[i].length = tx_packet_buffers[i].length;
 		/*
 		 * Need feedback from HW that the packet is sent:
 		 * If you set the RS bit in the command field of a transmit descriptor,
@@ -169,8 +177,6 @@ int e1000_transmit_packet(	char* 	data_to_transmit,
 
 	//Advance the Queue tail (TDT)
 	p_e1000_MMIO[E1000_TDT] = (++TDT_index)%E1000_NUM_OF_TX_DESCRIPTORS;
-	cprintf("E1000 tx len: %d\n", data_size_bytes);
-	cprintf("TDT_index is : %d\n",TDT_index);
 
 	return 0;
 }

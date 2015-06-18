@@ -6,6 +6,7 @@
 
 volatile  uint32_t * p_e1000_MMIO;
 
+
 /*
  * Our p_e1000_MMIO array has each cell of 32 bits,
  * but e1000 registers use the offset in bytes,
@@ -94,6 +95,7 @@ typedef struct tx_desc tx_desctiptor;
 struct tx_packet_buffer
 {
 	uint8_t buffer[TX_PACKET_SIZE];
+	uint16_t length;
 } __attribute__((packed));// minimum required memory will be used
 typedef struct tx_packet_buffer tx_packet_buffer;
 

@@ -17,8 +17,7 @@
 #include <kern/time.h>
 #include <kern/pci.h>
 
-//TODO
-#include <kern/e1000.h>
+#include <kern/e1000.h> // to transmit from kernel
 
 static void boot_aps(void);
 
@@ -57,7 +56,6 @@ i386_init(void)
 	time_init();
 	pci_init();
 
-//	//TODO
 //	e1000_transmit_packet("Hello",5);
 //	e1000_transmit_packet("Worldddd",8);
 
