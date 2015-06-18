@@ -1,6 +1,8 @@
 #include <kern/e1000.h>
 #include <kern/pmap.h>
 
+#include <inc/error.h>
+
 #include <inc/stdio.h>
 #include <inc/assert.h>
 #include <inc/string.h>
@@ -126,3 +128,57 @@ void e1000_tx_init(){
 	p_e1000_MMIO[E1000_TIPG] |= E1000_TIPG_IPGR1_VALUE;
 	p_e1000_MMIO[E1000_TIPG] |= E1000_TIPG_IPGR2_VALUE;
 }
+
+int e1000_transmit_packet(	char* 	data_to_transmit,
+							int 	data_size_bytes){
+
+	if(data_size_bytes > TX_PACKET_SIZE){
+		return - (E_PKT_TOO_LONG);
+	}
+
+
+	uint32_t TDT_index = p_e1000_MMIO[E1000_TDT];
+
+//	if( ! (tx_descriptors[TDT_index].cmd & E1000_TXD_CMD_RS) ){
+//		panic (" descriptor at index %d has not "
+//				"desc.cmd:RS set by e1000_tx_init()", TDT_index );
+//	}
+
+	if( ! tx_descriptors[TDT_index].status & E1000_TXD_STAT_DD){
+		return - (E_TX_FULL);
+	}
+
+	//BAAAD - use virtual addresses
+//	memmove(tx_descriptors[TDT_index].addr,
+//			buffer_to_transmit,
+//			buffer_size_bytes );
+
+	memmove(tx_packet_buffers[TDT_index].buffer,
+			data_to_transmit,
+			data_size_bytes);
+	tx_descriptors[TDT_index].length = data_size_bytes;
+
+
+	// Unset status:DD bit -
+	// the descriptor can't be reused until the data is sent
+	// the status:DD bill be set back by HW after fetching the data
+	tx_descriptors[TDT_index].status &= ~ E1000_TXD_STAT_DD;
+
+	// Ensure cmd:RS is set to make future status:DD data valid
+	tx_descriptors[TDT_index].cmd |= E1000_TXD_CMD_RS;
+
+	//Advance the Queue tail (TDT)
+	p_e1000_MMIO[E1000_TDT] = (++TDT_index)%E1000_NUM_OF_TX_DESCRIPTORS;
+	cprintf("E1000 tx len: %d\n", data_size_bytes);
+	cprintf("TDT_index is : %d\n",TDT_index);
+
+	return 0;
+}
+
+
+
+
+
+
+
+

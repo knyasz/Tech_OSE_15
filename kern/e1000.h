@@ -55,9 +55,17 @@ volatile  uint32_t * p_e1000_MMIO;
 // the value that should be programmed into IPGR2 is six
 #define E1000_TIPG_IPGR2_VALUE		6 << 20
 
-/* Descriptor Status */
-#define E1000_TXD_STAT_DD    0x00000001 /* Descriptor Done */
-#define E1000_TXD_CMD_RS     0x08000000 /* Report Status */
+/*
+ * Transmit descriptor status:
+ * Software can determine if a packet has been sent by setting the RS bit
+ * in the transmit descriptor command field.
+ * Checking the transmit descriptor DD bit in memory
+ * eliminates a potential race condition.
+ * */
+// Report Status - set to make DD bit valid
+#define E1000_TXD_CMD_RS     0x08000000
+// Descriptor Done - when set - the buffer can be filled by SW to be sent
+#define E1000_TXD_STAT_DD    0x00000001
 
 
 
@@ -89,5 +97,8 @@ typedef struct tx_packet_buffer tx_packet_buffer;
 
 int e1000_pci_attach(struct pci_func *pcif);
 void e1000_tx_init();
+
+int e1000_transmit_packet(	char* 	data_to_transmit,
+							int 	data_size_bytes);
 
 #endif	// JOS_KERN_E1000_H
