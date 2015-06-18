@@ -535,6 +535,9 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 			ret = (uint32_t)sys_time_msec();
 			break;
 
+//		case SYS_net_try_send :
+//			ret = (uint32_t)sys_net_try_send(char* a1, uint32_t a2);
+
 	}
 
 	//panic("syscall not implemented");

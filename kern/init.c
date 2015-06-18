@@ -57,8 +57,9 @@ i386_init(void)
 	time_init();
 	pci_init();
 
-	//TODO
-	e1000_transmit_packet("Hello",5);
+//	//TODO
+//	e1000_transmit_packet("Hello",5);
+//	e1000_transmit_packet("Worldddd",8);
 
 
 	// Acquire the big kernel lock before waking up APs
@@ -77,7 +78,7 @@ i386_init(void)
 
 #if !defined(TEST_NO_NS)
 	// Start ns.
-//	ENV_CREATE(net_ns, ENV_TYPE_NS);
+	ENV_CREATE(net_ns, ENV_TYPE_NS);
 #endif
 
 #if defined(TEST)

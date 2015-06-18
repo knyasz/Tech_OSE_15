@@ -49,11 +49,14 @@ volatile  uint32_t * p_e1000_MMIO;
 /* TX Inter-packet gap -RW */
 #define E1000_TIPG					BYTE_TO_WORD(0x00410)
 // The value that should be programmed into IPGT is 10
-#define E1000_TIPG_IPGT_VALUE		10
+//#define E1000_TIPG_IPGT_VALUE		10
+#define E1000_TIPG_IPGT_VALUE		0x0000000a
 // The value that should be programmed into IPGR1 is eight.
-#define E1000_TIPG_IPGR1_VALUE		8 << 10
+//#define E1000_TIPG_IPGR1_VALUE		8 << 10
+#define E1000_TIPG_IPGR1_VALUE		0x00001000
 // the value that should be programmed into IPGR2 is six
-#define E1000_TIPG_IPGR2_VALUE		6 << 20
+//#define E1000_TIPG_IPGR2_VALUE		6 << 20
+#define E1000_TIPG_IPGR2_VALUE		0x00600000
 
 /*
  * Transmit descriptor status:
