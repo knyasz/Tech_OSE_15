@@ -1,0 +1,24 @@
+Question1:
+How did you structure your transmit implementation?
+In particular, what do you do if the transmit ring is full?
+
+Answer1: 
+- Added error E_TX_FULL = 16,   // Transfer queue is full
+to inc/error.h
+The error is returned via syscall to user environment (output.c),
+which spins the try_send() function until driver succseeds
+to empty some descriptros from the Queue.
+
+Question2:
+How did you structure your receive implementation?
+In particular, what do you do 
+if the receive queue is empty 
+and a user environment requests the next incoming packet?
+
+Answer2:
+- Added error E_RX_EMPTY = 17,   // Receive queue is empty
+to inc/error.h
+The error is returned via syscall to user environment (inpul.c).
+On such error - user yields the processor in order to earn some wait time.
+
+
