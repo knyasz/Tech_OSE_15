@@ -23,6 +23,22 @@ On such error - user yields the processor in order to earn some wait time.
 
 
 
+Question3:
+What does the web page served by JOS's web server say?
+
+Answer3:
+Its wery unclear from the lab how actually to get Jos's answer.
+Finally, ran make run-httpd to get 
+ns: 52:54:00:12:34:56 bound to static IP 10.0.2.15
+NS: TCP/IP initialized.
+Waiting for http connections...
+Than, in browser's address line, wrote:
+http://localhost:26002/index.html
+and got the following:
+"This file came from Jos"
+"Cheesy web page" running line
+
+
 Challenge:
 We've choosen challenge 1:
 Write the code to load the E1000's MAC address out of the EEPROM.
