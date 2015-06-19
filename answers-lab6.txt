@@ -22,3 +22,16 @@ The error is returned via syscall to user environment (inpul.c).
 On such error - user yields the processor in order to earn some wait time.
 
 
+
+Challenge:
+We've choosen challenge 1:
+Write the code to load the E1000's MAC address out of the EEPROM.
+
+SW access procedure described in developers manuall 5.3.1
+To fetch "Ethernet Addtess" consists of 3 words as explained in 5.6.1
+(each word has it's address)
+each time we write another "word address" to EERD:ADDR field (13.4.4)
+to get another part of the MAC.
+During RX Init,
+we copy these parts imedietly to RAL/RAH of the e1000
+as described in 14.4 (Receive Initialization) 
