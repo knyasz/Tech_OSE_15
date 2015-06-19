@@ -33,6 +33,7 @@ Local port 26001 forwards to JOS port 7 (echo server)
 Local port 26002 forwards to JOS port 80 (web server)
 
 Finally, ran make run-httpd to get 
+(after adding user_httpd env to init - can just run qemu)
 ns: 52:54:00:12:34:56 bound to static IP 10.0.2.15
 NS: TCP/IP initialized.
 Waiting for http connections...
