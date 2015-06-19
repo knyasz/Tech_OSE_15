@@ -154,7 +154,6 @@ IMAGES += $(OBJDIR)/fs/fs.img
 QEMUOPTS += -net user -net nic,model=e1000 -redir tcp:$(PORT7)::7 \
 	   -redir tcp:$(PORT80)::80 -redir udp:$(PORT7)::7 -net dump,file=qemu.pcap
 QEMUOPTS += $(QEMUEXTRA)
-QEMUOPTS += -net nic,macaddr=52:54:00:12:34:56,model=e1000
 
 .gdbinit: .gdbinit.tmpl
 	sed "s/localhost:1234/localhost:$(GDBPORT)/" < $^ > $@
