@@ -25,9 +25,9 @@ int e1000_pci_attach(struct pci_func *pcif){
 			p_e1000_MMIO[E1000_STATUS]);
 	assert(p_e1000_MMIO[E1000_STATUS] == 0x80080783);
 
-	//Transmit Initialization
-	e1000_tx_init();
 
+	e1000_tx_init(); //Transmit Initialization
+	e1000_rx_init(); //Receive Initialization
 
 	return 0;
 }
@@ -182,9 +182,9 @@ int e1000_transmit_packet(	char* 	data_to_transmit,
 }
 
 // Receive descriptors
-rx_desctiptor rx_descriptors[E1000_NUM_OF_TX_DESCRIPTORS] __attribute__ ((aligned (16)));
+rx_desctiptor rx_descriptors[E1000_NUM_OF_RX_DESCRIPTORS] __attribute__ ((aligned (16)));
 // Receive buffers
-rx_packet_buffer rx_packet_buffers[E1000_NUM_OF_TX_DESCRIPTORS];
+rx_packet_buffer rx_packet_buffers[E1000_NUM_OF_RX_DESCRIPTORS];
 //
 void e1000_rx_init(){
 	/*****************************************************
@@ -203,94 +203,132 @@ void e1000_rx_init(){
  * and 34:56 are the high-order 16 bits.
  *
  */
+	uint8_t* p_RA = (uint8_t*)p_e1000_MMIO[E1000_RA];
+	p_RA[0] = 0x52;
+	p_RA[1] = 0x54;
+	p_RA[2] = 0x00;
+	p_RA[3] = 0x12;
+	p_RA[4] = 0x34;
+	p_RA[5] = 0x56;
 
+/*
+ * Initialize the MTA (Multicast Table Array) to 0b.
+ *  Per software, entries can be added to this table as desired.
+ */
+	p_e1000_MMIO[E1000_MTA] = 0;
 
+/*
+ * Program the Interrupt Mask Set/Read (IMS) register to enable any interrupt
+ *  the software driver wants to be notified of when the event occurs.
+ *   Suggested bits include RXT, RXO, RXDMT, RXSEQ, and LSC. There is no
+ *   immediate reason to enable the transmit interrupts
+ */
 
+	//  For now, don't configure the card to use interrupts;
 
+/*
+ * Allocate a region of memory for the receive descriptor list.
+ *  Software should insure this memory is aligned on a paragraph
+ *  (16-byte) boundary.
+ *   Program the Receive Descriptor Base Address (RDBAL/RDBAH) register(s)
+ *    with the address of the region. RDBAL is used for 32-bit addresses
+ *    and both RDBAL and RDBAH are used for 64-bit addresses
+ */
+	p_e1000_MMIO[E1000_RDBAL] = PADDR(rx_descriptors);
+	p_e1000_MMIO[E1000_RDBAH] = 0;
 
-//	/*
-//	 * Set up the receive queue and configure the E1000 by following
-//	 * the process in section 14.4.
-//	 * boundary. - static array rx_descriptors[].
-//	 * Initialize rx_descriptors[]
-//	 */
-//
-//	//Initialize rX descriptors - Ex5
-//	memset(	rx_descriptors,
-//			0,
-//			sizeof(rx_desctiptor) * E1000_NUM_OF_RX_DESCRIPTORS);
-//
-//	//Initialize TX buffers - Ex5
-//	memset(	tx_packet_buffers,
-//			0,
-//			sizeof(rx_packet_buffer) * E1000_NUM_OF_RX_DESCRIPTORS);
-//
-//	//Connect descriptors to buffers - Ex5
-//	int i;
-//	for (i = 0; i < E1000_NUM_OF_RX_DESCRIPTORS; i++) {
-//		rx_descriptors[i].addr = PADDR(rx_packet_buffers[i].buffer);
-//	}
-//
-//	/*
-//	 * Program the Receive Address Register(s) (RAL/RAH) with the desired
-//	 * Ethernet addresses.
-//	 * RAL[0]/RAH[0] should always be used to store the Individual Ethernet
-//	 * MAC address of the Ethernet controller. This can come from the EEPROM
-//	 * or from any other means (for example, on some machines, this comes from
-//	 * the system PROM not the EEPROM on the adapter port).
-//	 */
-//	p_e1000_MMIO[E1000_TDBAL] = PADDR(rx_descriptors);
-//	p_e1000_MMIO[E1000_TDBAH] = 0;
-//
-//	/*
-//	 * Set the Transmit Descriptor Length (TDLEN) register
-//	 * to the size (in bytes) of the descriptor ring.
-//	 * This register must be 128-byte aligned.
-//	 */
-//	p_e1000_MMIO[E1000_TDLEN] = sizeof(tx_desctiptor) *
-//									E1000_NUM_OF_TX_DESCRIPTORS;
-//
-//	/*
-//	 * The Transmit Descriptor Head and Tail (TDH/TDT)
-//	 * registers are initialized (by hardware) to 0b
-//	 * after a power-on or a software initiated Ethernet controller reset.
-//	 * Software should write 0b to both these registers to ensure this.
-//	 */
-//	p_e1000_MMIO[E1000_TDH] = 0;
-//	p_e1000_MMIO[E1000_TDT] = 0;
-//
-//	/* Initialize the Transmit Control Register (TCTL) for desired operation
-//	 * to include the following:
-//	 */
-//
-//	 // Set the Enable (TCTL.EN) bit to 1b for normal operation.
-//	p_e1000_MMIO[E1000_TCTL] |= E1000_TCTL_EN;
-//
-//	// Set the Pad Short Packets (TCTL.PSP) bit to 1b.
-//	p_e1000_MMIO[E1000_TCTL] |= E1000_TCTL_PSP;
-//
-//	// Configure the Collision Threshold (TCTL.CT) to the desired value.
-//	// Ethernet standard is 10h.
-//	// This setting only has meaning in half duplex mode
-//	p_e1000_MMIO[E1000_TCTL] &= ~E1000_TCTL_CT;
-//	p_e1000_MMIO[E1000_TCTL] |= E1000_TCTL_CT_VALUE;
-//
-//	// Configure the Collision Distance (TCTL.COLD) to its expected value.
-//	// For full duplex	operation, this value should be set to 40h.
-//	// For gigabit half duplex, this value should be set to	200h.
-//	// For 10/100 half duplex, this value should be set to 40h.
-//	p_e1000_MMIO[E1000_TCTL] &= ~E1000_TCTL_COLD;
-//	p_e1000_MMIO[E1000_TCTL] |= E1000_TCTL_COLD_VALUE;
-//
-//	// Program the Transmit IPG (TIPG) register
-//	// with the  decimal values from Table 13-77. TIPG Register Bit Description.
-//	// to get the minimum legal Inter Packet Gap
-//	p_e1000_MMIO[E1000_TIPG] = 0;
-//	p_e1000_MMIO[E1000_TIPG] |= E1000_TIPG_IPGT_VALUE;
-//	p_e1000_MMIO[E1000_TIPG] |= E1000_TIPG_IPGR1_VALUE;
-//	p_e1000_MMIO[E1000_TIPG] |= E1000_TIPG_IPGR2_VALUE;
-//}
-//
-//
-//
-//
+/*
+ * Set the Receive Descriptor Length (RDLEN) register to the size (in bytes)
+ *  of the descriptor ring.
+ */
+	p_e1000_MMIO[E1000_TDLEN] = sizeof(tx_desctiptor) *
+								E1000_NUM_OF_RX_DESCRIPTORS;
+
+/*
+ * The Receive Descriptor Head and Tail registers are initialized (by hardware)
+ *  to 0b after a power-on or a software-initiated Ethernet controller reset.
+ *  Receive buffers of appropriate size should be allocated and pointers
+ *  to these buffers should be stored in the receive descriptor ring.
+ *  Software initializes the Receive Descriptor Head (RDH) register and
+ *  Receive Descriptor Tail (RDT) with the appropriate head and tail addresses.
+ *  Head should point to the first valid receive descriptor in the descriptor
+ *  ring and tail should point to one descriptor beyond the last valid
+ *  descriptor in the descriptor ring.
+ */
+	//Initialize RX descriptors - Ex10
+	memset(	rx_descriptors,
+			0,
+			sizeof(rx_desctiptor) * E1000_NUM_OF_RX_DESCRIPTORS);
+
+	//Initialize RX buffers - Ex10
+	memset(	rx_packet_buffers,
+			0,
+			sizeof(rx_packet_buffer) * E1000_NUM_OF_RX_DESCRIPTORS);
+
+	int buffer_i;
+	for(buffer_i=0; buffer_i<E1000_NUM_OF_RX_DESCRIPTORS; buffer_i++){
+		rx_packet_buffers[buffer_i].length = RX_PACKET_SIZE;
+	}
+
+	//Connect descriptors to buffers - Ex10
+	int i;
+	for (i = 0; i < E1000_NUM_OF_RX_DESCRIPTORS; i++) {
+		rx_descriptors[i].addr = PADDR(rx_packet_buffers[i].buffer);
+		rx_descriptors[i].length = rx_packet_buffers[i].length;
+	}
+
+	//Initialize the Head and Tail, Tail points to one descriptor beyond the
+	//last valid descriptor in the descriptor ring
+	p_e1000_MMIO[E1000_RDH] = 0;
+	p_e1000_MMIO[E1000_RDT] = 0;
+
+/*
+ * Program the Receive Control (RCTL) register with appropriate values
+ * for desired operation to include the following:
+ *
+ * Set the receiver Enable (RCTL.EN) bit to 1b for normal operation.
+ *  However, it is best to leave the Ethernet controller receive logic disabled
+ *   (RCTL.EN = 0b) until after the receive descriptor ring has been
+ *    initialized and software is ready to process received packets.
+ */
+	p_e1000_MMIO[E1000_RCTL] |= E1000_RCTL_EN;
+	p_e1000_MMIO[E1000_RCTL] &= ~E1000_RCTL_LPE;
+//Loopback Mode (RCTL.LBM) should be set to 00b for normal operation
+	p_e1000_MMIO[E1000_RCTL] &= ~E1000_RCTL_LBM;
+
+//Configure the Receive Descriptor Minimum Threshold Size (RCTL.RDMTS)
+//bits to the desired value, The threshold is set to 1/2 the descriptors list
+//when reaching the threshold the hardware would send an interrupt:
+// RCR.RXMT0
+	p_e1000_MMIO[E1000_RCTL] &= ~E1000_RCTL_RDMTS;
+	p_e1000_MMIO[E1000_RCTL] |= E1000_RCTL_RDMTS_TRESHOLD_HALF;
+
+// Configure the Multicast Offset (RCTL.MO) bits to the desired value
+	p_e1000_MMIO[E1000_RCTL] &= ~E1000_RCTL_MO;
+
+//Set the Broadcast Accept Mode (RCTL.BAM) bit to 1b allowing the hardware
+//to accept broadcast packets
+	p_e1000_MMIO[E1000_RCTL] |= E1000_RCTL_BAM;
+
+/*
+ * Configure the Receive Buffer Size (RCTL.BSIZE) bits to reflect the size
+ * of the receive buffers software provides to hardware. Also configure
+ * the Buffer Extension Size (RCTL.BSEX) bits if receive buffer
+ * needs to be larger than 2048 bytes.
+ */
+	p_e1000_MMIO[E1000_RCTL] &= ~E1000_RCTL_BSEX;
+	p_e1000_MMIO[E1000_RCTL] &= ~E1000_RCTL_BSIZE;
+
+/*
+ * Set the Strip Ethernet CRC (RCTL.SECRC) bit if the desire is for hardware
+ *  to strip the CRC prior to DMA-ing the receive packet to host memory.
+ */
+	p_e1000_MMIO[E1000_RCTL] |= E1000_RCTL_SECRC;
+
+/*
+ *	Make sure you got the byte ordering right and didn't forget to set the
+ *	 "Address Valid" bit in RAH
+ */
+	p_e1000_MMIO[E1000_RAH] |= E1000_RAH_AV;
+}
+

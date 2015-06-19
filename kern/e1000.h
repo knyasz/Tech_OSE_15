@@ -3,11 +3,14 @@
 
 #include <kern/pci.h>
 
-#include <inc/mmu.h>
-
-
 volatile  uint32_t * p_e1000_MMIO;
+int e1000_pci_attach(struct pci_func *pcif);
 
+void e1000_tx_init();
+void e1000_rx_init();
+
+int e1000_transmit_packet(	char* 	data_to_transmit,
+							int 	data_size_bytes);
 
 /*
  * Our p_e1000_MMIO array has each cell of 32 bits,
@@ -99,29 +102,24 @@ struct tx_packet_buffer
 typedef struct tx_packet_buffer tx_packet_buffer;
 
 
-int e1000_pci_attach(struct pci_func *pcif);
-void e1000_tx_init();
-
-int e1000_transmit_packet(	char* 	data_to_transmit,
-							int 	data_size_bytes);
-
-
-
-
-
-
-
 /*************Receive Definitions****************/
 #define E1000_NUM_OF_RX_DESCRIPTORS 		128
 /*
  * If you make your receive packet buffers large enough and disable long packets,
  * you won't have to worry about packets spanning multiple receive buffers.
  */
-#define RX_PACKET_SIZE				PGSIZE // Bytes - uint_8t
+#define RX_PACKET_SIZE				2048 // Bytes - uint_8t
+// if packet size is changed, bsex and bsize should be changed accordingly
+#define E1000_RCTL_BSEX				0x02000000	/* Buffer size extension */
+#define E1000_RCTL_BSIZE			0x00030000	/* rx buffer size 256 */
 
 
 /* Receive Address (RW Array) - can't initialize with single command */
 #define E1000_RA					BYTE_TO_WORD(0x05400)
+/* Receive Address Low (RW Array) */
+#define E1000_RAL					BYTE_TO_WORD(0x05400)
+/* Receive Address High (RW Array) */
+#define E1000_RAH					BYTE_TO_WORD(0x05404)
 /* RX Descriptor Base Address Low - RW */
 #define E1000_RDBAL    				BYTE_TO_WORD(0x02800)
 /* RX Descriptor Base Address High - RW */
@@ -132,10 +130,26 @@ int e1000_transmit_packet(	char* 	data_to_transmit,
 #define E1000_RDH					BYTE_TO_WORD(0x02810)
 /* RX Descriptor Tail - RW */
 #define E1000_RDT 					BYTE_TO_WORD(0x02818)
-/* RX Desc Base Address Low (0) - RW */
-#define E1000_RDBAL0   				E1000_RDBAL
-/* RX Desc Base Address High (0) - RW */
-#define E1000_RDBAH0   				E1000_RDBAH
+/* Multicast Table Array - RW Array */
+#define E1000_MTA					BYTE_TO_WORD(0x05200)
+/* RX Control - RW */
+#define E1000_RCTL					BYTE_TO_WORD(0x00100)
+
+
+/* Receive Control */
+#define E1000_RCTL_EN				0x00000002	/* enable */
+/* Loop back mode are the 6th and 7th bits */
+#define E1000_RCTL_LBM				0x000000C0	/* loopback mode */
+#define E1000_RCTL_RDMTS			0x00000300	/* rx desc min threshold */
+#define E1000_RCTL_MO				0x00003000	/* multicast offset*/
+#define E1000_RCTL_BAM 				0x00008000	/* broadcast enable */
+#define E1000_RCTL_SECRC			0x04000000	/* Strip Ethernet CRC */
+#define E1000_RCTL_LPE				0x00000020	/* long packet enable */
+
+#define E1000_RAH_AV				0x80000000	/* Receive descriptor valid */
+
+/* rx descriptor min threshold 1/2 of the descriptors lengh*/
+#define E1000_RCTL_RDMTS_TRESHOLD_HALF	0x00000000
 
 /*
  * Receive descriptor
