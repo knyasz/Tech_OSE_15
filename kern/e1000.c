@@ -269,7 +269,7 @@ void e1000_rx_init(){
 	//Initialize the Head and Tail, Tail points to one descriptor beyond the
 	//last valid descriptor in the descriptor ring
 	p_e1000_MMIO[E1000_RDH] = 0;
-	p_e1000_MMIO[E1000_RDT] = 0;
+	p_e1000_MMIO[E1000_RDT] = E1000_NUM_OF_RX_DESCRIPTORS - 1;
 
 /*
  * Program the Receive Control (RCTL) register with appropriate values
