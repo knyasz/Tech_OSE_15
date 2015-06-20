@@ -28,7 +28,6 @@ int e1000_pci_attach(struct pci_func *pcif){
 
 	e1000_tx_init(); //Transmit Initialization
 	e1000_rx_init(); //Receive Initialization
-
 	return 0;
 }
 
@@ -54,23 +53,12 @@ void e1000_tx_init(){
 	memset(	tx_packet_buffers,
 			0,
 			sizeof(tx_packet_buffer) * E1000_NUM_OF_TX_DESCRIPTORS);
-	int buffer_i;
-	for(buffer_i=0;buffer_i<E1000_NUM_OF_TX_DESCRIPTORS;buffer_i++){
-		tx_packet_buffers[buffer_i].length=TX_PACKET_SIZE;
-	}
 
 	//Connect descriptors to buffers - Ex5
 	int i;
 	for (i = 0; i < E1000_NUM_OF_TX_DESCRIPTORS; i++) {
 		tx_descriptors[i].addr = PADDR(tx_packet_buffers[i].buffer);
-		tx_descriptors[i].length = tx_packet_buffers[i].length;
-		/*
-		 * Need feedback from HW that the packet is sent:
-		 * If you set the RS bit in the command field of a transmit descriptor,
-		 * then, when the card has transmitted the packet in that descriptor,
-		 * the card will set the DD bit in the status field of the descriptor.
-		 */
-		tx_descriptors[i].cmd |= E1000_TXD_CMD_RS;
+
 		/*
 		 * If a descriptor's DD bit is set,
 		 * you know it's safe to recycle that descriptor
@@ -166,7 +154,6 @@ int e1000_transmit_packet(	char* 	data_to_transmit,
 			data_size_bytes);
 	tx_descriptors[TDT_index].length = data_size_bytes;
 
-
 	// Unset status:DD bit -
 	// the descriptor can't be reused until the data is sent
 	// the status:DD bill be set back by HW after fetching the data
@@ -181,7 +168,7 @@ int e1000_transmit_packet(	char* 	data_to_transmit,
 	//only the Address, Length, and DD bits are valid.
 	//Here - each packet will be held in one descriptor only,
 	//Thus every descriptor is an end of packet.
-	tx_descriptors[TDT_index].status |=  E1000_TXD_CMD_EOP;
+	tx_descriptors[TDT_index].cmd |=  E1000_TXD_CMD_EOP;
 
 	//Advance the Queue tail (TDT)
 	p_e1000_MMIO[E1000_TDT] = (++TDT_index)%E1000_NUM_OF_TX_DESCRIPTORS;
