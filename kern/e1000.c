@@ -8,7 +8,7 @@
 #include <inc/string.h>
 
 // LAB 6: Your driver code here
-
+static void e1000_mac_address_EEPROM_update();
 // Transmit descriptors
 tx_desctiptor tx_descriptors[E1000_NUM_OF_TX_DESCRIPTORS] __attribute__ ((aligned (16)));
 // Transmit buffers
@@ -197,13 +197,8 @@ void e1000_rx_init(){
  * and 34:56 are the high-order 16 bits.
  *
  */
-	uint8_t* p_RA = (uint8_t*)(&p_e1000_MMIO[E1000_RA]);
-	p_RA[0] = 0x52;
-	p_RA[1] = 0x54;
-	p_RA[2] = 0x00;
-	p_RA[3] = 0x12;
-	p_RA[4] = 0x34;
-	p_RA[5] = 0x56;
+	e1000_mac_address_EEPROM_update();
+
 
 /*
  * Initialize the MTA (Multicast Table Array) to 0b.
@@ -263,6 +258,8 @@ void e1000_rx_init(){
 	int i;
 	for (i = 0; i < E1000_NUM_OF_RX_DESCRIPTORS; i++) {
 		rx_descriptors[i].addr = PADDR(rx_packet_buffers[i].buffer);
+		rx_descriptors[i].status |= E1000_RXD_STAT_DD;
+		rx_descriptors[i].status |=  E1000_RXD_STAT_EOP;
 	}
 
 	//Initialize the Head and Tail, Tail points to one descriptor beyond the
@@ -346,17 +343,34 @@ int e1000_receive_packet(char* p_data_buffer, uint32_t*  p_data_length){
 	}
 	// We take the minimal length between the sent packet length,
 	// and the allocated memory - user gave us
-	length =  *p_data_length < RX_PACKET_SIZE ?
-			 *p_data_length : RX_PACKET_SIZE;
+	length =  *p_data_length < rx_descriptors[RDT_index].length ?
+			 *p_data_length : rx_descriptors[RDT_index].length;
 
 	memmove(p_data_buffer,rx_packet_buffers[RDT_index].buffer,length);
-	* p_data_length=length;
+	* p_data_length = rx_descriptors[RDT_index].length;
 
 	rx_descriptors[RDT_index].status &= ~ E1000_RXD_STAT_DD;
-	rx_descriptors[RDT_index].status &= ~ E1000_TXD_CMD_EOP;
 
 	p_e1000_MMIO[E1000_RDT] = (++RDT_index)%E1000_NUM_OF_RX_DESCRIPTORS;
 
 	return 0;
 }
 
+static void e1000_mac_address_EEPROM_update(){
+
+	p_e1000_MMIO[E1000_EERD] = E1000_EERD_FIRST_PART_MAC; //0x0;
+	p_e1000_MMIO[E1000_EERD] |= E1000_EERD_START;
+	while (!(p_e1000_MMIO[E1000_EERD] & E1000_EERD_DONE));
+	p_e1000_MMIO[E1000_RAL] = WORD_HIGH_TO_LOW(p_e1000_MMIO[E1000_EERD]);
+
+	p_e1000_MMIO[E1000_EERD] = E1000_EERD_SECOND_PART_MAC;		//0x1 << 8;
+	p_e1000_MMIO[E1000_EERD] |= E1000_EERD_START;
+	while (!(p_e1000_MMIO[E1000_EERD] & E1000_EERD_DONE));
+	p_e1000_MMIO[E1000_RAL] |= p_e1000_MMIO[E1000_EERD] & MASK_HIGH_HALF_OF_WORD;
+
+	p_e1000_MMIO[E1000_EERD] = E1000_EERD_THIRD_PART_MAC; //0x2 << 8;
+	p_e1000_MMIO[E1000_EERD] |= E1000_EERD_START;
+	while (!(p_e1000_MMIO[E1000_EERD] & E1000_EERD_DONE));
+	p_e1000_MMIO[E1000_RAH] = WORD_HIGH_TO_LOW(p_e1000_MMIO[E1000_EERD]);
+
+}

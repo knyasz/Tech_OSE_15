@@ -19,6 +19,8 @@ int e1000_receive_packet(char* p_data_buffer, uint32_t*  p_data_length);
  * to 32-bit words indexes of the array.
  */
 #define BYTE_TO_WORD(byte) ( (byte) >> 2 )
+#define WORD_HIGH_TO_LOW(word) ( (word) >> 16)
+#define MASK_HIGH_HALF_OF_WORD		0xffff0000
 
 #define E1000_VENDOR_ID 			0x8086
 #define E1000_DEV_ID_82540EM		0x100E
@@ -176,4 +178,11 @@ struct rx_packet_buffer
 } __attribute__((packed));// minimum required memory will be used
 typedef struct rx_packet_buffer rx_packet_buffer;
 
+/* EEPROM Registers */
+#define E1000_EERD					BYTE_TO_WORD(0x00014) /* EEPROM Read - RW */
+#define E1000_EERD_START 			0x01
+#define E1000_EERD_DONE  			0x10
+#define E1000_EERD_FIRST_PART_MAC 	0x000
+#define E1000_EERD_SECOND_PART_MAC 	0x100
+#define E1000_EERD_THIRD_PART_MAC 	0x200
 #endif	// JOS_KERN_E1000_H

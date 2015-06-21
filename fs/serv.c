@@ -390,7 +390,7 @@ umain(int argc, char **argv)
 
 	serve_init();
 	fs_init();
-	fs_test();//challenge 1
+	//fs_test();//challenge 1
 	serve();
 }
 
