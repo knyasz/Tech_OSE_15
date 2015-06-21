@@ -447,8 +447,8 @@ sys_ipc_recv(void *dstva)
   
   // Block this env, and giveup CPU
   curenv->env_status = ENV_NOT_RUNNABLE;
-
-	return 0;
+  sched_yield();
+  return 0;
 }
 
 // Return the current time.

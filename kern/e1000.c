@@ -258,8 +258,6 @@ void e1000_rx_init(){
 	int i;
 	for (i = 0; i < E1000_NUM_OF_RX_DESCRIPTORS; i++) {
 		rx_descriptors[i].addr = PADDR(rx_packet_buffers[i].buffer);
-		rx_descriptors[i].status |= E1000_RXD_STAT_DD;
-		rx_descriptors[i].status |=  E1000_RXD_STAT_EOP;
 	}
 
 	//Initialize the Head and Tail, Tail points to one descriptor beyond the
@@ -333,6 +331,7 @@ void e1000_rx_init(){
 int e1000_receive_packet(char* p_data_buffer, uint32_t*  p_data_length){
 	uint32_t length = *p_data_length;
 	uint32_t RDT_index = p_e1000_MMIO[E1000_RDT];
+	RDT_index = (RDT_index + 1) % E1000_NUM_OF_RX_DESCRIPTORS;
 
 	if( ! (rx_descriptors[RDT_index].status & E1000_RXD_STAT_DD) ){
 		return - (E_RX_EMPTY);
@@ -351,7 +350,7 @@ int e1000_receive_packet(char* p_data_buffer, uint32_t*  p_data_length){
 
 	rx_descriptors[RDT_index].status &= ~ E1000_RXD_STAT_DD;
 
-	p_e1000_MMIO[E1000_RDT] = (++RDT_index)%E1000_NUM_OF_RX_DESCRIPTORS;
+	p_e1000_MMIO[E1000_RDT] = RDT_index;
 
 	return 0;
 }

@@ -114,7 +114,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, int perm)
 int
 sys_ipc_recv(void *dstva)
 {
-	return syscall(SYS_ipc_recv, 1, (uint32_t)dstva, 0, 0, 0, 0);
+	return syscall(SYS_ipc_recv, 0, (uint32_t)dstva, 0, 0, 0, 0);
 }
 
 unsigned int
@@ -128,7 +128,7 @@ sys_net_try_send(char* data, uint32_t len){
 }
 int
 sys_net_try_receive(char* buffer, uint32_t* len){
-	return syscall(SYS_net_try_receive, 1, (uint32_t)buffer, (uint32_t)len, 0, 0, 0);
+	return syscall(SYS_net_try_receive, 0, (uint32_t)buffer, (uint32_t)len, 0, 0, 0);
 }
 
 
