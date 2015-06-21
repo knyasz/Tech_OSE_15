@@ -14,10 +14,16 @@ tx_desctiptor tx_descriptors[E1000_NUM_OF_TX_DESCRIPTORS] __attribute__ ((aligne
 // Transmit buffers
 tx_packet_buffer tx_packet_buffers[E1000_NUM_OF_TX_DESCRIPTORS];
 
+bool flag = true;
 int e1000_pci_attach(struct pci_func *pcif){
 
 	//Enable PCI device - Ex3
 	pci_func_enable(pcif);
+
+	if(flag){
+			flag = false;
+			return 0;
+	}
 
 	//Memory map I/O for PCI device - Ex4
 	p_e1000_MMIO = mmio_map_region(pcif->reg_base[0],pcif->reg_size[0]);
@@ -28,6 +34,7 @@ int e1000_pci_attach(struct pci_func *pcif){
 
 	e1000_tx_init(); //Transmit Initialization
 	e1000_rx_init(); //Receive Initialization
+
 	return 0;
 }
 
