@@ -72,12 +72,31 @@ send_header(struct http_request *req, int code)
 
 	return 0;
 }
-
+#define MAX_PACKET_LENGTH 1518
 static int
 send_data(struct http_request *req, int fd)
 {
 	// LAB 6: Your code here.
-	panic("send_data not implemented");
+	char buffer[MAX_PACKET_LENGTH];
+	struct Stat stat;
+
+	if (fstat(fd, &stat) < 0) {
+		die("send_data: failed finding file descriptor");
+	}
+
+	if (stat.st_size > MAX_PACKET_LENGTH) {
+		die("send_data: size larger than 1518");
+	}
+
+	if (readn(fd, buffer, stat.st_size) != stat.st_size) {
+		die("send_data: failed reading the file");
+	}
+
+	if (write(req->sock, buffer, stat.st_size) != stat.st_size) {
+		die("send_data: failed writing data to socket");
+	}
+
+	return 0;
 }
 
 static int
@@ -223,7 +242,25 @@ send_file(struct http_request *req)
 	// set file_size to the size of the file
 
 	// LAB 6: Your code here.
-	panic("send_file not implemented");
+	struct Stat stat;
+
+	if ((fd = open(req->url, O_RDONLY)) < 0) {
+		send_error(req, 404);  // HTTP page not found
+		r = fd;
+		goto end;
+	}
+
+	if ((r = fstat(fd, &stat)) < 0) {
+		goto end;
+	}
+
+	if (stat.st_isdir) {
+		send_error(req, 404); // HTTP page not found
+		r = -1;
+		goto end;
+	}
+
+	file_size = stat.st_size;
 
 	if ((r = send_header(req, 200)) < 0)
 		goto end;
